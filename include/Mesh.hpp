@@ -34,8 +34,7 @@ public:
     Mesh( const std::vector<tVertex>& vertices, const std::vector<GLuint>& indices, const std::vector<tTexture>& textures );
     ~Mesh( void );
 
-    // void Draw(Shader shader);
-    void                render( const Camera& camera );
+    void                render( GLuint shaderId, const Camera& camera );
 
     /* getters */
     const GLuint&       getVao( void ) const { return (vao); };
@@ -45,13 +44,10 @@ private:
     GLuint                  vbo;               // Vertex Buffer Object
     GLuint                  ebo;               // Element Buffer Object (or indices buffer object, ibo)
 
-    Shader                  shader;            // the shader used by the model
-
     std::vector<tVertex>    vertices;
     std::vector<GLuint>     indices;
     std::vector<tTexture>   textures;
 
     void                    setup( int mode );
-    // void                initTexture( const std::string& src );
 
 };

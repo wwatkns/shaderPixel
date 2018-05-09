@@ -1,6 +1,4 @@
 #include "Mesh.hpp"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 Mesh::Mesh( const std::vector<tVertex>& vertices, const std::vector<GLuint>& indices, const std::vector<tTexture>& textures );
     this->vertices = vertices;
@@ -15,14 +13,7 @@ Mesh::~Mesh( void ) {
     glDeleteBuffers(1, &this->ebo);
 }
 
-void    Mesh::render( const Camera& camera ) {
-    // this->shader.use();
-    // this->shader.setMat4UniformValue("view", camera.getViewMatrix());
-    // this->shader.setMat4UniformValue("projection", camera.getProjectionMatrix());
-    // this->shader.setMat4UniformValue("model", this->transform);
-    // glBindVertexArray(this->vao);
-    // glDrawElements(GL_TRIANGLES, this->nIndices, GL_UNSIGNED_INT, 0);
-
+void    Mesh::render( GLuint shaderId, const Camera& camera ) {
     // bind appropriate textures
     unsigned int dn = 1;
     unsigned int sp = 1;
@@ -31,19 +22,19 @@ void    Mesh::render( const Camera& camera ) {
     // std::array<GLuint, 4> n = { 1, 1, 1, 1 };
     for (size_t i = 0; i < this->textures.size(); ++i) {
         glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
-        string number;
-        string name = this->textures[i].type;
+        std::string number;
+        std::string name = this->textures[i].type;
         switch (name) {
             case "texture_diffuse":  number = std::to_string(dn++); break;
             case "texture_specular": number = std::to_string(sn++); break;
             case "texture_normal":   number = std::to_string(nn++); break;
             case "texture_height":   number = std::to_string(hn++); break;
         };
-        glUniform1i(glGetUniformLocation(this->shader.id, (name + number).c_str()), i);
+        glUniform1i(glGetUniformLocation(shaderId, (name + number).c_str()), i);
         glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
     }
     // draw mesh
-    glBindVertexArray(VAO);
+    glBindVertexArray(this->vao);
     glDrawElements(GL_TRIANGLES, this->indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
     glActiveTexture(GL_TEXTURE0);

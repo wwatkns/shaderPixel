@@ -18,18 +18,18 @@
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "utils.hpp"
+#include "Mesh.hpp"
 
 class Model {
 
 public:
-    Model( const std::string& src, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
+    Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
     ~Model( void );
 
     void            update( void );
     void            render( const Camera& camera );
 
     /* getters */
-    const GLuint&       getVao( void ) const { return (vao); };
     const glm::mat4&    getTransform( void ) const { return (transform); };
     const glm::vec3&    getPosition( void ) const { return (position); };
     const glm::vec3&    getOrientation( void ) const { return (orientation); };
@@ -40,19 +40,17 @@ public:
     void                setScale( const glm::vec3& s ) { scale = s; };
 
 private:
-    int                 nIndices;           // the number of triangles of the model
-    GLuint              vao;                // Vertex Array Object
-    GLuint              vbo;                // Vertex Buffer Object
-    GLuint              ebo;                // Element Buffer Object (or indices buffer object, ibo)
-
     glm::mat4           transform;          // the transform applied to the model
     glm::vec3           position;           // the position
     glm::vec3           orientation;        // the orientation
     glm::vec3           scale;              // the scale
 
     Shader              shader;            // the shader used by the model
+    std::vector<Mesh>   meshes;
 
-    // void                initBufferObjects( const tObj& obj, int mode = GL_STATIC_DRAW );
-    // void                initTexture( const std::string& src );
+    void                loadModel( const std::string& path );
+    void                processNode( aiNode* node, const aiScene* scene );
+    Mesh                processMesh( aiMesh* mesh, const aiScene* scene );
+    std::vector<tTexture>   loadMaterialTextures( aiMaterial* mat, aiTextureType type, std::string typeName );
 
 };
