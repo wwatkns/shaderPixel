@@ -33,7 +33,7 @@ void	Env::initGlfwEnvironment( const std::string& glVersion ) {
 }
 
 void	Env::initGlfwWindow( size_t width, size_t height ) {
-    glfwWindowHint(GLFW_SAMPLES, 8); // TODO: check if anti-aliasing is slow
+    glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
 	if (!(this->window.ptr = glfwCreateWindow(width, height, "shaderPixel", NULL, NULL)))
         throw Exception::InitError("glfwCreateWindow failed");
 	glfwMakeContextCurrent(this->window.ptr);

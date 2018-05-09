@@ -12,6 +12,7 @@
 
 #include "Exception.hpp"
 #include "Shader.hpp"
+#include "Camera.hpp"
 #include "utils.hpp"
 
 typedef struct  sObj {
@@ -23,10 +24,11 @@ class Model {
 
 public:
     Model( const std::string& src, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
+    // Model( const std::string& src, Shader* shader, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
     ~Model( void );
 
     void            update( void );
-    void            render( void );
+    void            render( const Camera& camera );
 
     /* getters */
     const GLuint&       getVao( void ) const { return (vao); };
@@ -50,7 +52,7 @@ private:
     glm::vec3           orientation;        // the orientation
     glm::vec3           scale;              // the scale
 
-    Shader              *shader;
+    Shader              shader;            // the shader used by the model
 
     void                initBufferObjects( const tObj& obj, int mode = GL_STATIC_DRAW );
     tObj                loadObjFromFile( const std::string& src );

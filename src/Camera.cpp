@@ -1,10 +1,11 @@
 #include "Camera.hpp"
+#include "glm/ext.hpp" // TMP
 
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
-    this->position = glm::vec3(0, 0, 8);
-    this->target = glm::vec3(0, 0, 0);
-    this->viewMatrix = glm::lookAt(this->position, this->target, glm::vec3(0, 1, 0));
+    this->position = glm::vec3(0.0f, 0.0f, 3.0f);
+    this->target = glm::vec3(0.0f, 0.0f, 0.0f);
+    this->viewMatrix = glm::lookAt(this->position, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 Camera::Camera( const Camera& rhs ) {
@@ -54,9 +55,9 @@ void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
         1.0f
     );
     /* translation is in the same coordinate system as view (moves in same direction) */
-    translate = this->viewMatrix * glm::normalize(translate);
-    this->target = this->target + static_cast<glm::vec3>(this->viewMatrix * glm::vec4(0, 0, -1, 0));
-    this->position = this->position - static_cast<glm::vec3>(translate) * 0.5f;
+    translate = glm::transpose(this->viewMatrix) * glm::normalize(translate);
+    this->target = this->target + glm::vec3(this->viewMatrix * glm::vec4(0, 0, -1, 0));
+    this->position = this->position - glm::vec3(translate) * 0.5f;
     this->viewMatrix = glm::lookAt(this->position, this->target, glm::vec3(0, 1, 0));
 }
 

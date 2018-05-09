@@ -7,12 +7,13 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <forward_list>
+#include <vector>
 
 #include "Exception.hpp"
 #include "Env.hpp"
 #include "Shader.hpp"
 #include "Camera.hpp"
+#include "Model.hpp"
 
 class Renderer {
 
@@ -23,10 +24,8 @@ public:
     void	loop( void );
 
 private:
-    Env*        env;
-    Shader      shader;
-    Camera      camera;
-
-    void    updateShaderUniforms( void );
+    Env*                env;
+    Camera              camera;
+    std::vector<Model*>  models;
 
 };
