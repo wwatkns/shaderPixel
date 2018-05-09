@@ -6,6 +6,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -15,16 +19,10 @@
 #include "Camera.hpp"
 #include "utils.hpp"
 
-typedef struct  sObj {
-    std::vector<GLfloat>    vertices;
-    std::vector<GLuint>     indices;
-}               tObj;
-
 class Model {
 
 public:
     Model( const std::string& src, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
-    // Model( const std::string& src, Shader* shader, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
     ~Model( void );
 
     void            update( void );
@@ -54,9 +52,7 @@ private:
 
     Shader              shader;            // the shader used by the model
 
-    void                initBufferObjects( const tObj& obj, int mode = GL_STATIC_DRAW );
-    tObj                loadObjFromFile( const std::string& src );
+    // void                initBufferObjects( const tObj& obj, int mode = GL_STATIC_DRAW );
+    // void                initTexture( const std::string& src );
 
 };
-
-/* TODO: implement .obj loading (see scop) */

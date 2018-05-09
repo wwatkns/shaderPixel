@@ -6,7 +6,7 @@ Renderer::Renderer( Env* env ) :
     this->models.push_back(new Model(
         "./obj/model.obj",
         glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f),
+        glm::vec3(0.0f, 0.3f, 0.0f),
         glm::vec3(1.0f, 1.0f, 1.0f)
     ));
 }

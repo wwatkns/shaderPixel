@@ -18,14 +18,14 @@ glm::vec2    mousePosToClipSpace( const glm::dvec2& pos, int winWidth, int winHe
 // TMP
 void    createCube( std::vector<GLfloat>& vertices, std::vector<GLuint>& indices ) {
     vertices = {{
-        -0.5, -0.5,  0.5,
-         0.5, -0.5,  0.5,
-         0.5,  0.5,  0.5,
-        -0.5,  0.5,  0.5,
-        -0.5, -0.5, -0.5,
-         0.5, -0.5, -0.5,
-         0.5,  0.5, -0.5,
-        -0.5,  0.5, -0.5,
+        -0.5, -0.5,  0.5,   0.0, 1.0, // front top-left
+         0.5, -0.5,  0.5,   1.0, 1.0, // front top-right
+         0.5,  0.5,  0.5,   1.0, 0.0, // front bottom-right
+        -0.5,  0.5,  0.5,   0.0, 0.0, // front bottom-left
+        -0.5, -0.5, -0.5,   0.0, 1.0,
+         0.5, -0.5, -0.5,   1.0, 1.0,
+         0.5,  0.5, -0.5,   1.0, 0.0,
+        -0.5,  0.5, -0.5,   0.0, 0.0,
     }};
     indices = {{
         0, 1, 2,  2, 3, 0,
