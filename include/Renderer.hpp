@@ -26,6 +26,8 @@ public:
 private:
     Env*                env;
     Camera              camera;
-    std::vector<Model*>  models;
+    // std::vector<Model*> models;
+    Model               model;
+    Shader              shader;
 
 };

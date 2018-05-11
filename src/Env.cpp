@@ -3,7 +3,7 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
-        this->initGlfwWindow(1280, 960);
+        this->initGlfwWindow(960, 720);
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
@@ -33,7 +33,7 @@ void	Env::initGlfwEnvironment( const std::string& glVersion ) {
 }
 
 void	Env::initGlfwWindow( size_t width, size_t height ) {
-    glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
+    // glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
 	if (!(this->window.ptr = glfwCreateWindow(width, height, "shaderPixel", NULL, NULL)))
         throw Exception::InitError("glfwCreateWindow failed");
 	glfwMakeContextCurrent(this->window.ptr);

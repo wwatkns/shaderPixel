@@ -27,7 +27,7 @@ public:
     ~Model( void );
 
     void            update( void );
-    void            render( const Camera& camera );
+    void            render( Shader shader, const Camera& camera );
 
     /* getters */
     const glm::mat4&    getTransform( void ) const { return (transform); };
@@ -39,18 +39,21 @@ public:
     void                setOrientation( const glm::vec3& r ) { orientation = r; };
     void                setScale( const glm::vec3& s ) { scale = s; };
 
+    unsigned int        TextureFromFile( const char* path, const std::string& directory, bool gamma = false);
+
 private:
     glm::mat4           transform;          // the transform applied to the model
     glm::vec3           position;           // the position
     glm::vec3           orientation;        // the orientation
     glm::vec3           scale;              // the scale
 
-    Shader              shader;            // the shader used by the model
-    std::vector<Mesh>   meshes;
+    std::vector<Mesh>       meshes;
+    std::string             directory;
+    std::vector<tTexture>   textures_loaded;
 
-    void                loadModel( const std::string& path );
-    void                processNode( aiNode* node, const aiScene* scene );
-    Mesh                processMesh( aiMesh* mesh, const aiScene* scene );
+    void                    loadModel( const std::string& path );
+    void                    processNode( aiNode* node, const aiScene* scene );
+    Mesh                    processMesh( aiMesh* mesh, const aiScene* scene );
     std::vector<tTexture>   loadMaterialTextures( aiMaterial* mat, aiTextureType type, std::string typeName );
 
 };

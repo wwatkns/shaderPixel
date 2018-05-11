@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <array>
 // #include <stddef.h>
 
 #include "Exception.hpp"
@@ -20,6 +21,8 @@ typedef struct  sVertex {
     glm::vec3   Position;
     glm::vec3   Normal;
     glm::vec2   TexCoords;
+    // glm::vec3   Tangent;
+    // glm::vec3   Bitangent;
 }               tVertex;
 
 typedef struct  sTexture {
@@ -31,22 +34,22 @@ typedef struct  sTexture {
 class Mesh {
 
 public:
-    Mesh( const std::vector<tVertex>& vertices, const std::vector<GLuint>& indices, const std::vector<tTexture>& textures );
+    Mesh( std::vector<tVertex> vertices, std::vector<unsigned int> indices, std::vector<tTexture> textures );
     ~Mesh( void );
 
-    void                render( GLuint shaderId, const Camera& camera );
+    void                render( Shader shader );
 
     /* getters */
     const GLuint&       getVao( void ) const { return (vao); };
 
 private:
-    GLuint                  vao;               // Vertex Array Object
-    GLuint                  vbo;               // Vertex Buffer Object
-    GLuint                  ebo;               // Element Buffer Object (or indices buffer object, ibo)
+    unsigned int                vao;               // Vertex Array Object
+    unsigned int                vbo;               // Vertex Buffer Object
+    unsigned int                ebo;               // Element Buffer Object (or indices buffer object, ibo)
 
-    std::vector<tVertex>    vertices;
-    std::vector<GLuint>     indices;
-    std::vector<tTexture>   textures;
+    std::vector<tVertex>        vertices;
+    std::vector<unsigned int>   indices;
+    std::vector<tTexture>       textures;
 
     void                    setup( int mode );
 
