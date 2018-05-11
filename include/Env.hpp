@@ -10,6 +10,7 @@
 
 #include "Exception.hpp"
 #include "Controller.hpp"
+#include "Model.hpp"
 
 typedef struct  s_window {
     GLFWwindow* ptr;
@@ -25,10 +26,12 @@ public:
 
     const t_window& getWindow( void ) const { return (window); };
     Controller*     getController( void ) { return (controller); };
+    Model*          getModel( void ) { return (model); };
 
 private:
     t_window    window;
     Controller* controller;
+    Model*      model;
 
     void        initGlfwEnvironment( const std::string& glVersion = "4.0" );
     void        initGlfwWindow( size_t width, size_t height );

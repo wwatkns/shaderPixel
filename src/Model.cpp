@@ -41,9 +41,10 @@ Model::Model( const std::string& path, const glm::vec3& position, const glm::vec
 Model::~Model( void ) {
 }
 
-void    Model::render( Shader shader, const Camera& camera ) {
-    this->update();
-    shader.setMat4UniformValue("model", this->transform);
+void    Model::render( Shader shader ) {
+    // this->update();
+    // shader.setMat4UniformValue("model", this->transform);
+    shader.setMat4UniformValue("model", glm::mat4());
     for (unsigned int i = 0; i < this->meshes.size(); ++i)
         this->meshes[i].render(shader);
 }
@@ -141,8 +142,8 @@ std::vector<tTexture>   Model::loadMaterialTextures( aiMaterial* mat, aiTextureT
     return (textures);
 }
 
-unsigned int    Model::TextureFromFile( const char* path, const std::string& directory, bool gamma ) {
-    std::string filename = this->directory + '/' + std::string(path);
+unsigned int    TextureFromFile( const char* path, const std::string& directory, bool gamma ) {
+    std::string filename = directory + '/' + std::string(path);
     std::cout << filename << std::endl; // TMP
 
     unsigned int textureID;

@@ -10,20 +10,27 @@
 #include <string>
 #include <vector>
 #include <array>
-// #include <stddef.h>
 
 #include "Exception.hpp"
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "utils.hpp"
 
-typedef struct  sVertex {
+struct  tVertex {
     glm::vec3   Position;
     glm::vec3   Normal;
     glm::vec2   TexCoords;
     // glm::vec3   Tangent;
     // glm::vec3   Bitangent;
-}               tVertex;
+};
+
+// typedef struct  sVertex {
+//     glm::vec3   Position;
+//     glm::vec3   Normal;
+//     glm::vec2   TexCoords;
+//     // glm::vec3   Tangent;
+//     // glm::vec3   Bitangent;
+// }               tVertex;
 
 typedef struct  sTexture {
     unsigned int    id;
@@ -44,9 +51,9 @@ public:
     std::vector<tVertex>        vertices;
     std::vector<unsigned int>   indices;
     std::vector<tTexture>       textures;
+    unsigned int                vao;               // Vertex Array Object
 
 private:
-    unsigned int                vao;               // Vertex Array Object
     unsigned int                vbo;               // Vertex Buffer Object
     unsigned int                ebo;               // Element Buffer Object (or indices buffer object, ibo)
 

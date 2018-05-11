@@ -1,9 +1,7 @@
 #include "Mesh.hpp"
+#include "glm/ext.hpp"
 
-Mesh::Mesh( std::vector<tVertex> vertices, std::vector<unsigned int> indices, std::vector<tTexture> textures ) {
-    this->vertices = vertices;
-    this->indices = indices;
-    this->textures = textures;
+Mesh::Mesh( std::vector<tVertex> vertices, std::vector<unsigned int> indices, std::vector<tTexture> textures ) : vertices(vertices), indices(indices), textures(textures) {
     this->setup(GL_STATIC_DRAW);
 }
 
@@ -36,6 +34,35 @@ void    Mesh::render( Shader shader ) {
 }
 
 void    Mesh::setup( int mode ) {
+    std::vector<float>  tmp;
+
+    for (size_t i = 0; i < this->vertices.size(); ++i) {
+        tmp.push_back(this->vertices[i].Position.x);
+        tmp.push_back(this->vertices[i].Position.y);
+        tmp.push_back(this->vertices[i].Position.z);
+        // tmp.push_back(this->vertices[i].Normal.x);
+        // tmp.push_back(this->vertices[i].Normal.y);
+        // tmp.push_back(this->vertices[i].Normal.z);
+        // tmp.push_back(this->vertices[i].TexCoords.x);
+        // tmp.push_back(this->vertices[i].TexCoords.y);
+    }
+
+    // for (size_t i = 0; i < this->vertices.size(); ++i) {
+    //     std::cout << "_" << std::endl;
+    //     std::cout << glm::to_string(this->vertices[i].Position) << std::endl;
+    //     std::cout << glm::to_string(this->vertices[i].TexCoords) << std::endl;
+    // }
+    // for (size_t i = 0; i < this->indices.size(); ++i)
+    //     std::cout << this->indices[i] << ",";
+    // std::cout << std::endl;
+
+    std::cout << this->vertices.size() << std::endl;
+    std::cout << sizeof(tVertex) << std::endl;
+
+    // for (size_t i = 0; i < this->vertices.size()*sizeof(tVertex); ++i)
+        // std::cout << *((float*)(&vertices[0] + i % sizeof(tVertex) )) << std::endl;
+    // std::exit(1);
+
     // gen buffers and vertex arrays
 	glGenVertexArrays(1, &this->vao);
     glGenBuffers(1, &this->vbo);
@@ -45,20 +72,22 @@ void    Mesh::setup( int mode ) {
 	glBindVertexArray(this->vao);
     // copy our vertices array in a buffer for OpenGL to use
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-	glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(tVertex), &vertices[0], mode); //this->vertices.data(), mode);
+	// glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(tVertex), tmp.data(), mode); //this->vertices.data(), mode);
+	glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(float), tmp.data(), mode); //this->vertices.data(), mode);
     // copy our indices array in a buffer for OpenGL to use
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->indices.size() * sizeof(unsigned int), &indices[0], mode); //this->indices.data(), mode);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->indices.size() * sizeof(unsigned int), this->indices.data(), mode);
     // set the vertex attribute pointers:
     // position attribute
+	// glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<GLvoid*>(0));
     // normal coord attributes
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), (void*)offsetof(tVertex, Normal));
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), (void*)offsetof(tVertex, Normal));
     // texture coord attribute
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(tVertex), (void*)offsetof(tVertex, TexCoords));
+    // glEnableVertexAttribArray(2);
+    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(tVertex), (void*)offsetof(tVertex, TexCoords));
 
     // glEnableVertexAttribArray(3);
     // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), reinterpret_cast<GLvoid*>(offsetof(tVertex, Tangent)));

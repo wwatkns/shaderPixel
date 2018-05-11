@@ -7,6 +7,17 @@ Env::Env( void ) {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
+        this->model = new Model(
+            "/Users/wwatkins/Downloads/nanosuit/nanosuit.obj",
+            // "/Users/wwatkins/Downloads/amaravati-guardian-lion/source/amaravatiGuardianLion/lion.obj",
+            // "/Users/wwatkins/Downloads/rpg-reptile-mage/source/LizPosed.obj",
+            // "/Users/wwatkins/Downloads/swimsuit-succubus/source/SS.obj",
+            // glm::vec3(0.0f, -1.75f, 0.0f),
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f)
+            // glm::vec3(0.2f, 0.2f, 0.2f)
+        );
         this->setupController();
     } catch (const std::exception& err) {
         std::cout << err.what() << std::endl;

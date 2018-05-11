@@ -1,4 +1,5 @@
 #include "Camera.hpp"
+#include "glm/ext.hpp"
 
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
