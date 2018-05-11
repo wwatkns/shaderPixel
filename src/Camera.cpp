@@ -2,7 +2,7 @@
 
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
-    this->position = glm::vec3(0.0f, 0.0f, 30.0f);
+    this->position = glm::vec3(0.0f, 0.0f, 8.0f);
     this->target = glm::vec3(0.0f, 0.0f, 0.0f);
     this->viewMatrix = glm::lookAt(this->position, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
 }

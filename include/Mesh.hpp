@@ -41,15 +41,18 @@ public:
 
     /* getters */
     const GLuint&       getVao( void ) const { return (vao); };
+    std::vector<tVertex>        vertices;
+    std::vector<unsigned int>   indices;
+    std::vector<tTexture>       textures;
 
 private:
     unsigned int                vao;               // Vertex Array Object
     unsigned int                vbo;               // Vertex Buffer Object
     unsigned int                ebo;               // Element Buffer Object (or indices buffer object, ibo)
 
-    std::vector<tVertex>        vertices;
-    std::vector<unsigned int>   indices;
-    std::vector<tTexture>       textures;
+    // std::vector<tVertex>        vertices;
+    // std::vector<unsigned int>   indices;
+    // std::vector<tTexture>       textures;
 
     void                    setup( int mode );
 

@@ -1,24 +1,47 @@
 #include "Model.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "glm/ext.hpp"
 
 static inline glm::vec3    copyAssimpVector( const aiVector3D& aiv ) {
     return (glm::vec3(aiv.x, aiv.y, aiv.z));
 }
 
 Model::Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ) : position(position), orientation(orientation), scale(scale) {
-    this->loadModel(path);
+    // this->loadModel(path);
+
+    /* Create cube */
+    std::vector<GLfloat>        v;
+    std::vector<tVertex>        vertices; // good
+    std::vector<unsigned int>   indices; // good
+    std::vector<tTexture>       textures;
+    createCube(v, indices);
+    for (size_t i = 5; i < v.size()+1; i += 5) {
+        tVertex vertex;
+        vertex.Position = glm::vec3(v[i-5], v[i-4], v[i-3]);
+        vertex.Normal = glm::vec3(0, 0, 0);
+        vertex.TexCoords = glm::vec2(v[i-2], v[i-1]);
+        vertices.push_back(vertex);
+    }
+    this->meshes.push_back(Mesh(vertices, indices, textures));
     this->update();
+
+    // for (size_t i = 0; i < this->meshes[0].vertices.size(); ++i) {
+    //     std::cout << "_" << std::endl;
+    //     std::cout << glm::to_string(this->meshes[0].vertices[i].Position) << std::endl;
+    //     std::cout << glm::to_string(this->meshes[0].vertices[i].TexCoords) << std::endl;
+    // }
+    // for (size_t i = 0; i < this->meshes[0].indices.size(); ++i)
+    //     std::cout << this->meshes[0].indices[i] << ",";
+    // std::cout << std::endl;
+
+    // std::exit(1);
 }
 
 Model::~Model( void ) {
 }
 
 void    Model::render( Shader shader, const Camera& camera ) {
-    // shader.use();
-    // shader.setMat4UniformValue("projection", camera.getProjectionMatrix());
-    // shader.setMat4UniformValue("view", camera.getViewMatrix());
-
     this->update();
     shader.setMat4UniformValue("model", this->transform);
     for (unsigned int i = 0; i < this->meshes.size(); ++i)

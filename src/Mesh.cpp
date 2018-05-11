@@ -15,24 +15,24 @@ Mesh::~Mesh( void ) {
 
 void    Mesh::render( Shader shader ) {
     // bind appropriate textures
-    std::array<unsigned int, 4> n = { 1, 1, 1, 1 };
-    for (size_t i = 0; i < this->textures.size(); ++i) {
-        glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
-        std::string number;
-        std::string name = this->textures[i].type;
-        if (name == "texture_diffuse")  number = std::to_string((n[0])++);
-        if (name == "texture_specular") number = std::to_string((n[1])++);
-        if (name == "texture_normal")   number = std::to_string((n[2])++);
-        if (name == "texture_height")   number = std::to_string((n[3])++);
-        glUniform1i(glGetUniformLocation(shader.id, (name + number).c_str()), i);
-        glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
-    }
+    // std::array<unsigned int, 4> n = { 1, 1, 1, 1 };
+    // for (size_t i = 0; i < this->textures.size(); ++i) {
+    //     glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
+    //     std::string number;
+    //     std::string name = this->textures[i].type;
+    //     if (name == "texture_diffuse")  number = std::to_string((n[0])++);
+    //     if (name == "texture_specular") number = std::to_string((n[1])++);
+    //     if (name == "texture_normal")   number = std::to_string((n[2])++);
+    //     if (name == "texture_height")   number = std::to_string((n[3])++);
+    //     glUniform1i(glGetUniformLocation(shader.id, (name + number).c_str()), i);
+    //     glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
+    // }
     // draw mesh
     glBindVertexArray(this->vao);
     glDrawElements(GL_TRIANGLES, this->indices.size(), GL_UNSIGNED_INT, 0);
 
-    glBindVertexArray(0);
-    glActiveTexture(GL_TEXTURE0);
+    // glBindVertexArray(0);
+    // glActiveTexture(GL_TEXTURE0);
 }
 
 void    Mesh::setup( int mode ) {
@@ -45,10 +45,10 @@ void    Mesh::setup( int mode ) {
 	glBindVertexArray(this->vao);
     // copy our vertices array in a buffer for OpenGL to use
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-	glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(tVertex), this->vertices.data(), mode);
+	glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(tVertex), &vertices[0], mode); //this->vertices.data(), mode);
     // copy our indices array in a buffer for OpenGL to use
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->indices.size() * sizeof(unsigned int), this->indices.data(), mode);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->indices.size() * sizeof(unsigned int), &indices[0], mode); //this->indices.data(), mode);
     // set the vertex attribute pointers:
     // position attribute
 	glEnableVertexAttribArray(0);
