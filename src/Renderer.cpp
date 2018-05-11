@@ -18,22 +18,16 @@ void	Renderer::loop( void ) {
         glClearColor(0.09f, 0.08f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        this->shader.use();
         this->env->getController()->update();
-        // this->camera.handleKeys( this->env->getController()->getKeys() );
+        this->camera.handleKeys( this->env->getController()->getKeys() );
 
         /* update shader uniforms */
+        this->shader.use();
         this->shader.setMat4UniformValue("projection", this->camera.getProjectionMatrix());
         this->shader.setMat4UniformValue("view", this->camera.getViewMatrix());
-
-        // std::cout << glm::to_string(this->camera.getProjectionMatrix()) << std::endl;
-        // std::cout << glm::to_string(this->camera.getViewMatrix()) << std::endl;
-        /* render model */
-        this->env->getModel()->render(shader);
-
-        // for (auto it = this->models.begin(); it != this->models.end(); it++)
-            // (*it)->render(shader, this->camera);
-
+        /* render models */
+        for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
+            (*it)->render(shader);
         glfwSwapBuffers(this->env->getWindow().ptr);
     }
 }

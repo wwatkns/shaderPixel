@@ -13,7 +13,6 @@
 #include "Env.hpp"
 #include "Shader.hpp"
 #include "Camera.hpp"
-// #include "Model.hpp"
 
 class Renderer {
 
@@ -26,7 +25,6 @@ public:
 private:
     Env*                env;
     Camera              camera;
-    // std::vector<Model*> models;
     Shader              shader;
 
 };

@@ -8,43 +8,32 @@ static inline glm::vec3    copyAssimpVector( const aiVector3D& aiv ) {
 }
 
 Model::Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ) : position(position), orientation(orientation), scale(scale) {
-    // this->loadModel(path);
+    this->loadModel(path);
 
-    /* Create cube */
-    std::vector<GLfloat>        v;
-    std::vector<tVertex>        vertices; // good
-    std::vector<unsigned int>   indices; // good
-    std::vector<tTexture>       textures;
-    createCube(v, indices);
-    for (size_t i = 5; i < v.size()+1; i += 5) {
-        tVertex vertex;
-        vertex.Position = glm::vec3(v[i-5], v[i-4], v[i-3]);
-        vertex.Normal = glm::vec3(0, 0, 0);
-        vertex.TexCoords = glm::vec2(v[i-2], v[i-1]);
-        vertices.push_back(vertex);
-    }
-    this->meshes.push_back(Mesh(vertices, indices, textures));
-    this->update();
-
-    // for (size_t i = 0; i < this->meshes[0].vertices.size(); ++i) {
-    //     std::cout << "_" << std::endl;
-    //     std::cout << glm::to_string(this->meshes[0].vertices[i].Position) << std::endl;
-    //     std::cout << glm::to_string(this->meshes[0].vertices[i].TexCoords) << std::endl;
+    /* Create debug cube */
+    // std::vector<float>          v;
+    // std::vector<tVertex>        vertices; // good
+    // std::vector<unsigned int>   indices; // good
+    // std::vector<tTexture>       textures;
+    // createCube(v, indices);
+    // for (size_t i = 5; i < v.size()+1; i += 5) {
+    //     tVertex vertex;
+    //     vertex.Position = glm::vec3(v[i-5], v[i-4], v[i-3]);
+    //     vertex.Normal = glm::vec3(0, 0, 0);
+    //     vertex.TexCoords = glm::vec2(v[i-2], v[i-1]);
+    //     vertices.push_back(vertex);
     // }
-    // for (size_t i = 0; i < this->meshes[0].indices.size(); ++i)
-    //     std::cout << this->meshes[0].indices[i] << ",";
-    // std::cout << std::endl;
+    // this->meshes.push_back(Mesh(vertices, indices, textures));
 
-    // std::exit(1);
+    this->update();
 }
 
 Model::~Model( void ) {
 }
 
 void    Model::render( Shader shader ) {
-    // this->update();
-    // shader.setMat4UniformValue("model", this->transform);
-    shader.setMat4UniformValue("model", glm::mat4());
+    this->update();
+    shader.setMat4UniformValue("model", this->transform);
     for (unsigned int i = 0; i < this->meshes.size(); ++i)
         this->meshes[i].render(shader);
 }
@@ -52,13 +41,14 @@ void    Model::render( Shader shader ) {
 void    Model::update( void ) {
     this->transform = glm::mat4();
     this->transform = glm::translate(this->transform, this->position);
-    // this->transform = glm::rotate(this->transform, this->orientation.z, glm::vec3(0, 0, 1));
-    // this->transform = glm::rotate(this->transform, this->orientation.y, glm::vec3(0, 1, 0));
-    // this->transform = glm::rotate(this->transform, this->orientation.x, glm::vec3(1, 0, 0));
+    this->transform = glm::rotate(this->transform, this->orientation.z, glm::vec3(0, 0, 1));
+    this->transform = glm::rotate(this->transform, this->orientation.y, glm::vec3(0, 1, 0));
+    this->transform = glm::rotate(this->transform, this->orientation.x, glm::vec3(1, 0, 0));
     this->transform = glm::scale(this->transform, this->scale);
 }
 
 void    Model::loadModel( const std::string& path ) {
+    std::cout << "Loading: " << path << std::endl;
     Assimp::Importer import;
     // const aiScene*  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcess_GenNormals);
     const aiScene*  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
@@ -144,7 +134,7 @@ std::vector<tTexture>   Model::loadMaterialTextures( aiMaterial* mat, aiTextureT
 
 unsigned int    TextureFromFile( const char* path, const std::string& directory, bool gamma ) {
     std::string filename = directory + '/' + std::string(path);
-    std::cout << filename << std::endl; // TMP
+    std::cout << "> texture: " << filename << std::endl;
 
     unsigned int textureID;
     glGenTextures(1, &textureID);
@@ -158,9 +148,6 @@ unsigned int    TextureFromFile( const char* path, const std::string& directory,
             case 3: format = GL_RGB; break;
             case 4: format = GL_RGBA; break;
         };
-        std::cout << width << std::endl; // TMP
-        std::cout << height << std::endl; // TMP
-
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);

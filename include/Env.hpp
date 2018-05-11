@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <unordered_map>
 #include <regex>
 
@@ -24,14 +25,14 @@ public:
     Env( void );
     ~Env( void );
 
-    const t_window& getWindow( void ) const { return (window); };
-    Controller*     getController( void ) { return (controller); };
-    Model*          getModel( void ) { return (model); };
+    const t_window&         getWindow( void ) const { return (window); };
+    Controller*             getController( void ) { return (controller); };
+    std::vector<Model*>&    getModels( void ) { return (models); };
 
 private:
-    t_window    window;
-    Controller* controller;
-    Model*      model;
+    t_window            window;
+    Controller*         controller;
+    std::vector<Model*> models;
 
     void        initGlfwEnvironment( const std::string& glVersion = "4.0" );
     void        initGlfwWindow( size_t width, size_t height );
