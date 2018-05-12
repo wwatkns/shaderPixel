@@ -3,8 +3,9 @@
 
 Renderer::Renderer( Env* env ) :
 env(env),
-camera(75, (float)env->getWindow().width / (float)env->getWindow().height),
-shader("./shader/vertex.glsl", "./shader/fragment.glsl") {
+camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
+    this->shader["default"] = new Shader("./shader/default_vert.glsl", "./shader/default_frag.glsl");
+    this->shader["skybox"]  = new Shader("./shader/skybox_vert.glsl", "./shader/skybox_frag.glsl");
 }
 
 Renderer::~Renderer( void ) {
@@ -21,13 +22,34 @@ void	Renderer::loop( void ) {
         this->env->getController()->update();
         this->camera.handleKeys( this->env->getController()->getKeys() );
 
-        /* update shader uniforms */
-        this->shader.use();
-        this->shader.setMat4UniformValue("projection", this->camera.getProjectionMatrix());
-        this->shader.setMat4UniformValue("view", this->camera.getViewMatrix());
-        /* render models */
-        for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
-            (*it)->render(shader);
+        this->renderMeshes();
+        this->renderSkybox();
+
         glfwSwapBuffers(this->env->getWindow().ptr);
     }
+}
+
+void    Renderer::renderMeshes( void ) {
+    /* update shader uniforms */
+    this->shader["default"]->use();
+    this->shader["default"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
+    this->shader["default"]->setMat4UniformValue("view", this->camera.getViewMatrix());
+    this->shader["default"]->setVec3UniformValue("viewPos", this->camera.getPosition());
+    this->shader["default"]->setVec3UniformValue("light.position", glm::vec3(-10, 30, 2));
+    this->shader["default"]->setVec3UniformValue("light.ambient", glm::vec3(0, 0, 0));
+    this->shader["default"]->setVec3UniformValue("light.diffuse", glm::vec3(1, 1, 1));
+    this->shader["default"]->setVec3UniformValue("light.specular", glm::vec3(1, 1, 1));
+    /* render models */
+    for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
+        (*it)->render(*this->shader["default"]);
+}
+
+void    Renderer::renderSkybox( void ) {
+    glDepthFunc(GL_LEQUAL);
+    this->shader["skybox"]->use();
+    this->shader["skybox"]->setMat4UniformValue("view", glm::mat4(glm::mat3(this->camera.getViewMatrix())));
+    this->shader["skybox"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
+    /* render skybox */
+    this->env->getSkybox()->render(*this->shader["skybox"]);
+    glDepthFunc(GL_LESS);
 }

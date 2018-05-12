@@ -28,6 +28,7 @@ public:
 
     unsigned int        getUniformLocation( const std::string& name );
 
+    void                setFloatUniformValue( const std::string& name, const float f );
     void                setMat2UniformValue( const std::string& name, const glm::mat2& m );
     void                setMat3UniformValue( const std::string& name, const glm::mat3& m );
     void                setMat4UniformValue( const std::string& name, const glm::mat4& m );

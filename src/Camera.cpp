@@ -54,10 +54,25 @@ void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
         (float)(keys[GLFW_KEY_W].value - keys[GLFW_KEY_S].value),
         1.0f
     );
+    // NEW
+    glm::vec4    rotate(
+        (float)(keys[GLFW_KEY_I].value - keys[GLFW_KEY_K].value) * 0.05,
+        (float)(keys[GLFW_KEY_J].value - keys[GLFW_KEY_L].value) * 0.05,
+        0.0f,
+        1.0f
+    );
+
     /* translation is in the same coordinate system as view (moves in same direction) */
     translate = glm::transpose(this->viewMatrix) * glm::normalize(translate);
     this->target = this->target + glm::vec3(this->viewMatrix * glm::vec4(0, 0, -1, 0));
     this->position = this->position - glm::vec3(translate) * 0.5f;
+    // NEW
+    glm::mat4 rot = glm::mat4();
+    rot = glm::rotate(rot, rotate.z, glm::vec3(0, 0, 1));
+    rot = glm::rotate(rot, rotate.y, glm::vec3(0, 1, 0));
+    rot = glm::rotate(rot, rotate.x, glm::vec3(1, 0, 0));
+    this->target = glm::vec3(rot * glm::vec4(this->target, 1));
+
     this->viewMatrix = glm::lookAt(this->position, this->target, glm::vec3(0, 1, 0));
 }
 

@@ -24,6 +24,7 @@ class Model {
 
 public:
     Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
+    Model( const std::vector<std::string>& paths );  // cubemap constructor
     ~Model( void );
 
     void            update( void );
@@ -56,4 +57,7 @@ private:
 
 };
 
-unsigned int        TextureFromFile( const char* path, const std::string& directory, bool gamma = false);
+unsigned int        loadTexture( const char* path, const std::string& directory );
+unsigned int        loadTexture( const char* path );
+
+unsigned int        loadCubemap( const std::vector<std::string>& paths );

@@ -20,9 +20,17 @@ typedef struct  sVertex {
     glm::vec3   Position;
     glm::vec3   Normal;
     glm::vec2   TexCoords;
+    glm::vec4   Colors;
     // glm::vec3   Tangent;
     // glm::vec3   Bitangent;
 }               tVertex;
+
+typedef struct  sMaterial {
+    glm::vec3   ambient;
+    glm::vec3   diffuse;
+    glm::vec3   specular;
+    float       shininess;
+}               tMaterial;
 
 typedef struct  sTexture {
     unsigned int    id;
@@ -33,7 +41,7 @@ typedef struct  sTexture {
 class Mesh {
 
 public:
-    Mesh( std::vector<tVertex> vertices, std::vector<unsigned int> indices, std::vector<tTexture> textures );
+    Mesh( std::vector<tVertex> vertices, std::vector<unsigned int> indices, std::vector<tTexture> textures, tMaterial material );
     ~Mesh( void );
 
     void                render( Shader shader );
@@ -48,6 +56,7 @@ private:
     std::vector<tVertex>        vertices;
     std::vector<unsigned int>   indices;
     std::vector<tTexture>       textures;
+    tMaterial                   material;
 
     void                    setup( int mode );
 

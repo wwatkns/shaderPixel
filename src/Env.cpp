@@ -9,18 +9,44 @@ Env::Env( void ) {
         this->controller = new Controller(this->window.ptr);
         this->models = {{
             new Model(
-                "/Users/wwatkins/Downloads/nanosuit/nanosuit.obj",
-                glm::vec3(0.0f, -1.75f, 0.0f),
+                "/Users/wwatkins/Downloads/the-drunk-troll-tavern/source/tavern2.fbx",
                 glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(1.0f, 1.0f, 1.0f)
+                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(0.0008f, 0.005f, 0.005f)
             ),
-            new Model(
-                "/Users/wwatkins/Downloads/amaravati-guardian-lion/source/amaravatiGuardianLion/lion.obj",
-                glm::vec3(0.0f, -1.75f, 0.0f),
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(1.0f, 1.0f, 1.0f)
-            )
+            // new Model(
+            //     "/Users/wwatkins/Downloads/dragonfall-temple/source/arena_final01/arena_final01.FBX",
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(-M_PI/2.0f, 0.0f, 0.0f),
+            //     glm::vec3(1.0f, 1.0f, 1.0f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/3d-scan-iguana-sculpture/source/mesh.zip/mesh.obj",
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(M_PI/2.0f, 0.0f, 0.0f),
+            //     glm::vec3(1.0f, 1.0f, 1.0f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/nanosuit/nanosuit.obj",
+            //     glm::vec3(0.0f, -1.75f, 0.0f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(1.0f, 1.0f, 1.0f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/amaravati-guardian-lion/source/amaravatiGuardianLion/lion.obj",
+            //     glm::vec3(0.0f, -1.75f, 0.0f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(1.0f, 1.0f, 1.0f)
+            // )
         }};
+        this->skybox = new Model(std::vector<std::string>{{
+            "/Users/wwatkins/Downloads/skybox/right.jpg",
+            "/Users/wwatkins/Downloads/skybox/left.jpg",
+            "/Users/wwatkins/Downloads/skybox/top.jpg",
+            "/Users/wwatkins/Downloads/skybox/bottom.jpg",
+            "/Users/wwatkins/Downloads/skybox/front.jpg",
+            "/Users/wwatkins/Downloads/skybox/back.jpg",
+        }});
         this->setupController();
     } catch (const std::exception& err) {
         std::cout << err.what() << std::endl;
@@ -28,6 +54,9 @@ Env::Env( void ) {
 }
 
 Env::~Env( void ) {
+    for (size_t i = 0; i < this->models.size(); ++i)
+        delete this->models[i];
+    delete this->skybox;
     delete this->controller;
     glfwDestroyWindow(this->window.ptr);
     glfwTerminate();
