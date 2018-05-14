@@ -29,6 +29,7 @@ typedef struct  sMaterial {
     glm::vec3   diffuse;
     glm::vec3   specular;
     float       shininess;
+    float       opacity;
 }               tMaterial;
 
 typedef struct  sTexture {
@@ -46,6 +47,7 @@ public:
     void                render( Shader shader );
     /* getters */
     const GLuint&       getVao( void ) const { return (vao); };
+    const tMaterial&    getMaterial( void ) const { return (material); };
 
 private:
     unsigned int                vao;               // Vertex Array Object
@@ -60,3 +62,5 @@ private:
     void                    setup( int mode );
 
 };
+
+bool sortByTransparency( const Mesh& a, const Mesh& b );

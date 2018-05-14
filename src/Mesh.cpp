@@ -17,6 +17,7 @@ void    Mesh::render( Shader shader ) {
     shader.setVec3UniformValue("material.diffuse", this->material.diffuse);
     shader.setVec3UniformValue("material.specular", this->material.specular);
     shader.setFloatUniformValue("material.shininess", this->material.shininess);
+    shader.setFloatUniformValue("material.opacity", this->material.opacity);
 
     /* set texture attributes */
     std::array<unsigned int, 4> n = { 1, 1, 1, 1 };
@@ -74,4 +75,8 @@ void    Mesh::setup( int mode ) {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+}
+
+bool    sortByTransparency( const Mesh& a, const Mesh& b ) {
+    return (a.getMaterial().opacity > b.getMaterial().opacity);
 }

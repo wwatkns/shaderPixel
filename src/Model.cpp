@@ -16,6 +16,8 @@ static inline glm::vec3    copyAssimpColor( const aiColor3D& aic ) {
 
 Model::Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ) : position(position), orientation(orientation), scale(scale) {
     this->loadModel(path);
+    /* sort the meshes by transparency of material */
+    std::sort(this->meshes.begin(), this->meshes.end(), sortByTransparency);
     this->update();
 }
 
@@ -134,6 +136,8 @@ Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
     meshMaterial.specular = copyAssimpColor(color);
     material->Get(AI_MATKEY_SHININESS, f);
     meshMaterial.shininess = f;
+    material->Get(AI_MATKEY_OPACITY, f);
+    meshMaterial.opacity = f;
 
     // std::cout << "ambient: " << glm::to_string(meshMaterial.ambient) << std::endl;
     // std::cout << "diffuse: " << glm::to_string(meshMaterial.diffuse) << std::endl;

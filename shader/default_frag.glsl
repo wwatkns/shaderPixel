@@ -24,6 +24,7 @@ struct sMaterial {
     vec3 diffuse;
     vec3 specular;
     float shininess;
+    float opacity;
 };
 
 in vec3 FragPos;
@@ -50,7 +51,8 @@ void main() {
     for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
         result += computePointLight(pointLights[i], normal, FragPos, viewDir);
 
-    FragColor = texture(texture_diffuse1, TexCoords) + vec4(result, 1);
+    FragColor = texture(texture_diffuse1, TexCoords) + vec4(result, 1.0f);
+    FragColor.w = material.opacity;
 }
 
 vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir ) {

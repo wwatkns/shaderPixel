@@ -12,9 +12,15 @@ Renderer::~Renderer( void ) {
 }
 
 void	Renderer::loop( void ) {
+    /* z-buffering */
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_FRAMEBUFFER_SRGB); // gamma correction
+    /* gamma correction */
+    glEnable(GL_FRAMEBUFFER_SRGB);
+    /* multisampling MSAA */
     glEnable(GL_MULTISAMPLE);
+    /* transparency */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     while (!glfwWindowShouldClose(this->env->getWindow().ptr)) {
         glfwPollEvents();
         glClearColor(0.09f, 0.08f, 0.15f, 1.0f);
