@@ -3,6 +3,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -16,6 +20,13 @@
 #include "Camera.hpp"
 #include "Light.hpp"
 
+typedef struct  sShadowDepthMap {
+    unsigned int    id;
+    unsigned int    fbo;
+    size_t          width;
+    size_t          height;
+}               tShadowDepthMap;
+
 typedef std::unordered_map<std::string, Shader*> tShaderMap;
 
 class Renderer {
@@ -25,13 +36,18 @@ public:
     ~Renderer( void );
 
     void	loop( void );
+    void    renderDepth( void ); // change name
     void    renderLights( void );
     void    renderMeshes( void );
     void    renderSkybox( void );
 
 private:
-    Env*        env;
-    Camera      camera;
-    tShaderMap  shader;
+    Env*            env;
+    Camera          camera;
+    tShaderMap      shader;
+    tShadowDepthMap shadowDepthMap;
+    glm::mat4       lightSpaceMat;
+
+    void    initShadowDepthMap( const size_t width = 1024, const size_t height = 1024 );
 
 };

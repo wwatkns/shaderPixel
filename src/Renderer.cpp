@@ -6,20 +6,18 @@ env(env),
 camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["default"] = new Shader("./shader/default_vert.glsl", "./shader/default_frag.glsl");
     this->shader["skybox"]  = new Shader("./shader/skybox_vert.glsl", "./shader/skybox_frag.glsl");
+    this->shader["shadowMap"] = new Shader("./shader/shadow_mapping_vert.glsl", "./shader/shadow_mapping_frag.glsl");
+    this->initShadowDepthMap(2048, 2048);
 }
 
 Renderer::~Renderer( void ) {
 }
 
 void	Renderer::loop( void ) {
-    /* z-buffering */
-    glEnable(GL_DEPTH_TEST);
-    /* gamma correction */
-    glEnable(GL_FRAMEBUFFER_SRGB);
-    /* multisampling MSAA */
-    glEnable(GL_MULTISAMPLE);
-    /* transparency */
-    glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST); /* z-buffering */
+    glEnable(GL_FRAMEBUFFER_SRGB); /* gamma correction */
+    glEnable(GL_MULTISAMPLE); /* multisampling MSAA */
+    glEnable(GL_BLEND); /* transparency */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     while (!glfwWindowShouldClose(this->env->getWindow().ptr)) {
         glfwPollEvents();
@@ -29,18 +27,45 @@ void	Renderer::loop( void ) {
         this->env->getController()->update();
         this->camera.handleKeys( this->env->getController()->getKeys() );
 
+        this->renderDepth();
         this->renderLights();
         this->renderMeshes();
         this->renderSkybox();
-
         glfwSwapBuffers(this->env->getWindow().ptr);
     }
+}
+
+void    Renderer::renderDepth( void ) {
+    glm::mat4 lightProjection, lightView;
+    // float near_plane = 1.0f, far_plane = 7.5f;
+    float near_plane = 0.1f, far_plane = 80.0f;//7.5f;
+    lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
+    lightView = glm::lookAt(glm::vec3(10, 10, -1), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+    this->lightSpaceMat = lightProjection * lightView;
+    // render scene from light's point of view
+    this->shader["shadowMap"]->use();
+    this->shader["shadowMap"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
+
+    glViewport(0, 0, this->shadowDepthMap.width, this->shadowDepthMap.height);
+    glBindFramebuffer(GL_FRAMEBUFFER, this->shadowDepthMap.fbo);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    /* render meshes on shadowMap shader */
+    for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
+        (*it)->render(*this->shader["shadowMap"]);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // reset viewport
+    glViewport(0, 0, this->env->getWindow().width, this->env->getWindow().height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void    Renderer::renderLights( void ) {
     /* update shader uniforms */
     this->shader["default"]->use();
     this->shader["default"]->setIntUniformValue("nPointLights", Light::pointLightCount);
+
     /* render lights */
     for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
         (*it)->render(*this->shader["default"]);
@@ -52,6 +77,12 @@ void    Renderer::renderMeshes( void ) {
     this->shader["default"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
     this->shader["default"]->setMat4UniformValue("view", this->camera.getViewMatrix());
     this->shader["default"]->setVec3UniformValue("viewPos", this->camera.getPosition());
+
+    this->shader["default"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
+    glActiveTexture(GL_TEXTURE0);// 1);
+    this->shader["default"]->setIntUniformValue("shadowMap", 0);
+    glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
+
     /* render models */
     for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
         (*it)->render(*this->shader["default"]);
@@ -65,4 +96,33 @@ void    Renderer::renderSkybox( void ) {
     /* render skybox */
     this->env->getSkybox()->render(*this->shader["skybox"]);
     glDepthFunc(GL_LESS);
+}
+
+void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) {
+    glEnable(GL_DEPTH_TEST);
+
+    this->shadowDepthMap.width = width;
+    this->shadowDepthMap.height = height;
+
+    glGenFramebuffers(1, &this->shadowDepthMap.fbo);
+    /* create depth texture */
+    glGenTextures(1, &this->shadowDepthMap.id);
+    glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    // attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, this->shadowDepthMap.fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->shadowDepthMap.id, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    this->shader["default"]->use();
+    this->shader["default"]->setIntUniformValue("shadowMap", 0);
+    // this->shader["default"]->setIntUniformValue("shadowMap", 1);
 }

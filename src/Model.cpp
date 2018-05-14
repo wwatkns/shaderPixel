@@ -52,6 +52,7 @@ Model::~Model( void ) {
 }
 
 void    Model::render( Shader shader ) {
+    // TODO: sort the transparent meshes by distance to camera
     this->update();
     shader.setMat4UniformValue("model", this->transform);
     for (unsigned int i = 0; i < this->meshes.size(); ++i)

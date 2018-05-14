@@ -41,10 +41,10 @@ public:
     void                setScale( const glm::vec3& s ) { scale = s; };
 
 private:
-    glm::mat4           transform;          // the transform applied to the model
-    glm::vec3           position;           // the position
-    glm::vec3           orientation;        // the orientation
-    glm::vec3           scale;              // the scale
+    glm::mat4               transform;          // the transform applied to the model
+    glm::vec3               position;           // the position
+    glm::vec3               orientation;        // the orientation
+    glm::vec3               scale;              // the scale
 
     std::vector<Mesh>       meshes;
     std::string             directory;

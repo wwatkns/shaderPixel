@@ -17,7 +17,8 @@ Env::Env( void ) {
         }};
         this->lights = {{
             new Light(
-                glm::vec3(-1.0f, -1.0f, 0.0f),
+                // glm::normalize(glm::vec3(1, 10, -1) - glm::vec3(0.0f)),
+                glm::normalize(glm::vec3(0.0f) - glm::vec3(1, 10, -1)),
                 glm::vec3(0.77f, 0.88f, 1.0f) * 0.05f,
                 glm::vec3(1.0f, 0.964f, 0.77f),
                 glm::vec3(1.0f, 1.0f, 1.0f),

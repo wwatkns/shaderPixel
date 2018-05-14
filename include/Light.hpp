@@ -39,7 +39,7 @@ public:
     void                setDiffuse( const glm::vec3& t ) { diffuse = t; };
     void                setSpecular( const glm::vec3& t ) { specular = t; };
 
-    static int pointLightCount;
+    static int          pointLightCount;
 
 private:
     glm::vec3           direction;
