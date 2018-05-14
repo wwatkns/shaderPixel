@@ -14,6 +14,7 @@
 #include "Env.hpp"
 #include "Shader.hpp"
 #include "Camera.hpp"
+#include "Light.hpp"
 
 typedef std::unordered_map<std::string, Shader*> tShaderMap;
 
@@ -24,6 +25,7 @@ public:
     ~Renderer( void );
 
     void	loop( void );
+    void    renderLights( void );
     void    renderMeshes( void );
     void    renderSkybox( void );
 

@@ -3,50 +3,64 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
-        this->initGlfwWindow(960, 720);
+        this->initGlfwWindow(1920, 1080);
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
         this->models = {{
             new Model(
-                "/Users/wwatkins/Downloads/the-drunk-troll-tavern/source/tavern2.fbx",
+                "/Users/wwatkins/Downloads/workshop/source/model.obj",
                 glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.0008f, 0.005f, 0.005f)
+                glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
+                glm::vec3(10.0f, 10.0f, 10.0f)
             ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/dragonfall-temple/source/arena_final01/arena_final01.FBX",
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(-M_PI/2.0f, 0.0f, 0.0f),
-            //     glm::vec3(1.0f, 1.0f, 1.0f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/3d-scan-iguana-sculpture/source/mesh.zip/mesh.obj",
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(M_PI/2.0f, 0.0f, 0.0f),
-            //     glm::vec3(1.0f, 1.0f, 1.0f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/nanosuit/nanosuit.obj",
-            //     glm::vec3(0.0f, -1.75f, 0.0f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(1.0f, 1.0f, 1.0f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/amaravati-guardian-lion/source/amaravatiGuardianLion/lion.obj",
-            //     glm::vec3(0.0f, -1.75f, 0.0f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(1.0f, 1.0f, 1.0f)
-            // )
         }};
+        this->lights = {{
+            new Light(
+                glm::vec3(-1.0f, -1.0f, 0.0f),
+                glm::vec3(0.77f, 0.88f, 1.0f) * 0.05f,
+                glm::vec3(1.0f, 0.964f, 0.77f),
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                eLightType::directional
+            ),
+            new Light(
+                glm::vec3(1.0f, 1.0f, 0.0f),
+                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(1.0f, 0.0f, 0.0f),
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                1.0f,
+                0.09f,
+                0.032f,
+                eLightType::point
+            ),
+            new Light(
+                glm::vec3(-2.0f, 1.0f, 5.0f),
+                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                1.0f,
+                0.09f,
+                0.032f,
+                eLightType::point
+            ),
+        }};
+        // this->skybox = new Model(std::vector<std::string>{{
+        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetLeft2048.png",
+        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetRight2048.png",
+        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetUp2048.png",
+        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetDown2048.png",
+        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetFront2048.png",
+        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetBack2048.png",
+        // }});
         this->skybox = new Model(std::vector<std::string>{{
-            "/Users/wwatkins/Downloads/skybox/right.jpg",
-            "/Users/wwatkins/Downloads/skybox/left.jpg",
-            "/Users/wwatkins/Downloads/skybox/top.jpg",
-            "/Users/wwatkins/Downloads/skybox/bottom.jpg",
-            "/Users/wwatkins/Downloads/skybox/front.jpg",
-            "/Users/wwatkins/Downloads/skybox/back.jpg",
+            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
+            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterRight2048.png",
+            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterUp2048.png",
+            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterDown2048.png",
+            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterFront2048.png",
+            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterBack2048.png",
         }});
+
         this->setupController();
     } catch (const std::exception& err) {
         std::cout << err.what() << std::endl;
@@ -56,6 +70,8 @@ Env::Env( void ) {
 Env::~Env( void ) {
     for (size_t i = 0; i < this->models.size(); ++i)
         delete this->models[i];
+    for (size_t i = 0; i < this->lights.size(); ++i)
+        delete this->lights[i];
     delete this->skybox;
     delete this->controller;
     glfwDestroyWindow(this->window.ptr);
@@ -76,7 +92,7 @@ void	Env::initGlfwEnvironment( const std::string& glVersion ) {
 }
 
 void	Env::initGlfwWindow( size_t width, size_t height ) {
-    // glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
+    glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
 	if (!(this->window.ptr = glfwCreateWindow(width, height, "shaderPixel", NULL, NULL)))
         throw Exception::InitError("glfwCreateWindow failed");
 	glfwMakeContextCurrent(this->window.ptr);

@@ -13,7 +13,8 @@ Renderer::~Renderer( void ) {
 
 void	Renderer::loop( void ) {
     glEnable(GL_DEPTH_TEST);
-    // glEnable(GL_MULTISAMPLE);
+    glEnable(GL_FRAMEBUFFER_SRGB); // gamma correction
+    glEnable(GL_MULTISAMPLE);
     while (!glfwWindowShouldClose(this->env->getWindow().ptr)) {
         glfwPollEvents();
         glClearColor(0.09f, 0.08f, 0.15f, 1.0f);
@@ -22,11 +23,21 @@ void	Renderer::loop( void ) {
         this->env->getController()->update();
         this->camera.handleKeys( this->env->getController()->getKeys() );
 
+        this->renderLights();
         this->renderMeshes();
         this->renderSkybox();
 
         glfwSwapBuffers(this->env->getWindow().ptr);
     }
+}
+
+void    Renderer::renderLights( void ) {
+    /* update shader uniforms */
+    this->shader["default"]->use();
+    this->shader["default"]->setIntUniformValue("nPointLights", Light::pointLightCount);
+    /* render lights */
+    for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
+        (*it)->render(*this->shader["default"]);
 }
 
 void    Renderer::renderMeshes( void ) {
@@ -35,10 +46,6 @@ void    Renderer::renderMeshes( void ) {
     this->shader["default"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
     this->shader["default"]->setMat4UniformValue("view", this->camera.getViewMatrix());
     this->shader["default"]->setVec3UniformValue("viewPos", this->camera.getPosition());
-    this->shader["default"]->setVec3UniformValue("light.position", glm::vec3(-10, 30, 2));
-    this->shader["default"]->setVec3UniformValue("light.ambient", glm::vec3(0, 0, 0));
-    this->shader["default"]->setVec3UniformValue("light.diffuse", glm::vec3(1, 1, 1));
-    this->shader["default"]->setVec3UniformValue("light.specular", glm::vec3(1, 1, 1));
     /* render models */
     for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
         (*it)->render(*this->shader["default"]);

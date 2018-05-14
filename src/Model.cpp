@@ -101,7 +101,6 @@ Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
         vertex.Position = copyAssimpVector(mesh->mVertices[i]);
         vertex.Normal = copyAssimpVector(mesh->mNormals[i]);
         vertex.TexCoords = (mesh->mTextureCoords[0] ? glm::vec2(copyAssimpVector(mesh->mTextureCoords[0][i])) : glm::vec2(0.0f, 0.0f));
-        vertex.Colors = (mesh->mColors[0] ? copyAssimpColor(mesh->mColors[0][i]) : glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         // vertex.Tangent = copyAssimpVector(mesh->mTangents[i]);
         // vertex.Bitangent = copyAssimpVector(mesh->mBitangents[i]);
         vertices.push_back(vertex);

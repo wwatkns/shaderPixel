@@ -80,6 +80,9 @@ unsigned int    Shader::getUniformLocation( const std::string& name ) {
     return (newLoc);
 }
 
+void    Shader::setIntUniformValue( const std::string& name, const int i ) {
+    glUniform1i(getUniformLocation(name), i);
+}
 void    Shader::setFloatUniformValue( const std::string& name, const float f ) {
     glUniform1f(getUniformLocation(name), f);
 }
