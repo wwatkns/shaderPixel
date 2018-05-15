@@ -21,7 +21,7 @@ enum class eLightType {
 class Light {
 
 public:
-    Light( const glm::vec3& direction, const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, eLightType type );
+    Light( const glm::vec3& position, const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, eLightType type );
     Light( const glm::vec3& position, const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, float lconst, float linear, float quadratic, eLightType type );
     ~Light( void );
 
@@ -29,6 +29,7 @@ public:
     void            render( Shader shader );
 
     /* getters */
+    const eLightType    getType( void ) const { return (type); };
     const glm::vec3&    getPosition( void ) const { return (position); };
     const glm::vec3&    getAmbient( void ) const { return (ambient); };
     const glm::vec3&    getDiffuse( void ) const { return (diffuse); };

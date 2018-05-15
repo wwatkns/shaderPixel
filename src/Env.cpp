@@ -17,8 +17,7 @@ Env::Env( void ) {
         }};
         this->lights = {{
             new Light(
-                // glm::normalize(glm::vec3(1, 10, -1) - glm::vec3(0.0f)),
-                glm::normalize(glm::vec3(0.0f) - glm::vec3(1, 10, -1)),
+                glm::vec3(10, 10, -1),
                 glm::vec3(0.77f, 0.88f, 1.0f) * 0.05f,
                 glm::vec3(1.0f, 0.964f, 0.77f),
                 glm::vec3(1.0f, 1.0f, 1.0f),
@@ -111,4 +110,11 @@ void    Env::setupController( void ) {
 
 void    Env::framebufferSizeCallback( GLFWwindow* window, int width, int height ) {
     glViewport(0, 0, width, height);
+}
+
+Light*  Env::getDirectionalLight( void ) {
+    for (auto it = this->lights.begin(); it != this->lights.end(); it++)
+        if ((*it)->getType() == eLightType::directional)
+            return (*it);
+    return (nullptr);
 }

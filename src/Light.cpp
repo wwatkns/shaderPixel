@@ -2,7 +2,7 @@
 
 int Light::pointLightCount = 0;
 
-Light::Light( const glm::vec3& direction, const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, eLightType type ) : direction(direction), ambient(ambient), diffuse(diffuse), specular(specular), type(type), lconst(1), linear(0.09), quadratic(0.032) {
+Light::Light( const glm::vec3& position, const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, eLightType type ) : position(position), ambient(ambient), diffuse(diffuse), specular(specular), type(type), lconst(1), linear(0.09), quadratic(0.032) {
     if (type == eLightType::point) {
         this->id = this->pointLightCount;
         this->pointLightCount++;
@@ -23,7 +23,7 @@ Light::~Light( void ) {
 
 void    Light::render( Shader shader ) {
     if (this->type == eLightType::directional) {
-        shader.setVec3UniformValue("directionalLight.direction", this->direction);
+        shader.setVec3UniformValue("directionalLight.position", this->position);
         shader.setVec3UniformValue("directionalLight.ambient", this->ambient);
         shader.setVec3UniformValue("directionalLight.diffuse", this->diffuse);
         shader.setVec3UniformValue("directionalLight.specular", this->specular);

@@ -31,6 +31,7 @@ public:
     std::vector<Model*>&    getModels( void ) { return (models); };
     std::vector<Light*>&    getLights( void ) { return (lights); };
     Model*                  getSkybox( void ) { return (skybox); };
+    Light*                  getDirectionalLight( void );
 
 private:
     t_window            window;

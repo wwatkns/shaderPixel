@@ -7,7 +7,7 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["default"] = new Shader("./shader/default_vert.glsl", "./shader/default_frag.glsl");
     this->shader["skybox"]  = new Shader("./shader/skybox_vert.glsl", "./shader/skybox_frag.glsl");
     this->shader["shadowMap"] = new Shader("./shader/shadow_mapping_vert.glsl", "./shader/shadow_mapping_frag.glsl");
-    this->initShadowDepthMap(2048, 2048);
+    this->initShadowDepthMap(4096, 4096);
 }
 
 Renderer::~Renderer( void ) {
@@ -36,29 +36,32 @@ void	Renderer::loop( void ) {
 }
 
 void    Renderer::renderDepth( void ) {
-    glm::mat4 lightProjection, lightView;
-    // float near_plane = 1.0f, far_plane = 7.5f;
-    float near_plane = 0.1f, far_plane = 80.0f;//7.5f;
-    lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
-    lightView = glm::lookAt(glm::vec3(10, 10, -1), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-    this->lightSpaceMat = lightProjection * lightView;
-    // render scene from light's point of view
-    this->shader["shadowMap"]->use();
-    this->shader["shadowMap"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
+    Light*  directionalLight = this->env->getDirectionalLight();
+    if (directionalLight) {
+        glm::mat4 lightProjection, lightView;
+        // float near_plane = 1.0f, far_plane = 7.5f;
+        float near_plane = 0.1f, far_plane = 75.0f;
+        lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
+        lightView = glm::lookAt(directionalLight->getPosition(), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        this->lightSpaceMat = lightProjection * lightView;
+        // render scene from light's point of view
+        this->shader["shadowMap"]->use();
+        this->shader["shadowMap"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
 
-    glViewport(0, 0, this->shadowDepthMap.width, this->shadowDepthMap.height);
-    glBindFramebuffer(GL_FRAMEBUFFER, this->shadowDepthMap.fbo);
-    glClear(GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, this->shadowDepthMap.width, this->shadowDepthMap.height);
+        glBindFramebuffer(GL_FRAMEBUFFER, this->shadowDepthMap.fbo);
+        glClear(GL_DEPTH_BUFFER_BIT);
 
-    /* render meshes on shadowMap shader */
-    for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
-        (*it)->render(*this->shader["shadowMap"]);
+        /* render meshes on shadowMap shader */
+        for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
+            (*it)->render(*this->shader["shadowMap"]);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // reset viewport
-    glViewport(0, 0, this->env->getWindow().width, this->env->getWindow().height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // reset viewport
+        glViewport(0, 0, this->env->getWindow().width, this->env->getWindow().height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
 }
 
 void    Renderer::renderLights( void ) {
@@ -124,5 +127,4 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
 
     this->shader["default"]->use();
     this->shader["default"]->setIntUniformValue("shadowMap", 0);
-    // this->shader["default"]->setIntUniformValue("shadowMap", 1);
 }
