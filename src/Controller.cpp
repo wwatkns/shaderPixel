@@ -2,6 +2,7 @@
 
 Controller::Controller( GLFWwindow* window ) : window(window) {
     this->ref = std::chrono::steady_clock::now();
+    glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 Controller::~Controller( void ) {
@@ -13,6 +14,7 @@ void    Controller::update( void ) {
 }
 
 void    Controller::mouseHandler( void ) {
+    this->mouse.prevPos = this->mouse.pos;
     glfwGetCursorPos(this->window, &(this->mouse.pos.x), &(this->mouse.pos.y));
     for (size_t b = 0; b < N_MOUSE_BUTTON; ++b)
         this->mouse.button[b] = (glfwGetMouseButton(this->window, b) == GLFW_PRESS);

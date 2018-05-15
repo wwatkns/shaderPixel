@@ -4,8 +4,10 @@
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
     this->position = glm::vec3(0.0f, 0.0f, 8.0f);
-    this->target = glm::vec3(0.0f, 0.0f, 0.0f);
-    this->viewMatrix = glm::lookAt(this->position, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
+    this->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0.0f, 1.0f, 0.0f));
+    this->pitch = 0;
+    this->yaw = 0;
 }
 
 Camera::Camera( const Camera& rhs ) {
@@ -16,7 +18,7 @@ Camera& Camera::operator=( const Camera& rhs ) {
     this->projectionMatrix = rhs.getProjectionMatrix();
     this->viewMatrix = rhs.getViewMatrix();
     this->position = rhs.getPosition();
-    this->target = rhs.getTarget();
+    this->cameraFront = rhs.getCameraFront();
     this->fov = rhs.getFov();
     this->aspect = rhs.getAspect();
     this->near = rhs.getNear();
@@ -47,6 +49,12 @@ void    Camera::setFar( float far ) {
     this->projectionMatrix = glm::perspective(glm::radians(this->fov), this->aspect, this->near, this->far);
 }
 
+void    Camera::handleInputs( const std::array<tKey, N_KEY>& keys, const tMouse& mouse ) {
+    this->handleKeys(keys);
+    this->handleMouse(mouse);
+    this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0, 1, 0));
+}
+
 void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
     glm::vec4    translate(
         (float)(keys[GLFW_KEY_A].value - keys[GLFW_KEY_D].value),
@@ -54,26 +62,21 @@ void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
         (float)(keys[GLFW_KEY_W].value - keys[GLFW_KEY_S].value),
         1.0f
     );
-    // NEW
-    glm::vec4    rotate(
-        (float)(keys[GLFW_KEY_I].value - keys[GLFW_KEY_K].value) * 0.05,
-        (float)(keys[GLFW_KEY_J].value - keys[GLFW_KEY_L].value) * 0.05,
-        0.0f,
-        1.0f
-    );
-
     /* translation is in the same coordinate system as view (moves in same direction) */
     translate = glm::transpose(this->viewMatrix) * glm::normalize(translate);
-    this->target = this->target + glm::vec3(this->viewMatrix * glm::vec4(0, 0, -1, 0));
     this->position = this->position - glm::vec3(translate) * 0.5f;
-    // NEW
-    glm::mat4 rot = glm::mat4();
-    rot = glm::rotate(rot, rotate.z, glm::vec3(0, 0, 1));
-    rot = glm::rotate(rot, rotate.y, glm::vec3(0, 1, 0));
-    rot = glm::rotate(rot, rotate.x, glm::vec3(1, 0, 0));
-    this->target = glm::vec3(rot * glm::vec4(this->target, 1));
+}
 
-    this->viewMatrix = glm::lookAt(this->position, this->target, glm::vec3(0, 1, 0));
+void    Camera::handleMouse( const tMouse& mouse, float sensitivity ) {
+    this->pitch += (mouse.prevPos.y - mouse.pos.y) * sensitivity;
+    this->pitch = std::min(std::max(this->pitch, -89.0f), 89.0f);
+    this->yaw += (mouse.pos.x - mouse.prevPos.x) * sensitivity;
+    glm::vec3 front(
+        std::cos(glm::radians(pitch)) * std::cos(glm::radians(yaw)),
+        std::sin(glm::radians(pitch)),
+        std::cos(glm::radians(pitch)) * std::sin(glm::radians(yaw))
+    );
+    this->cameraFront = glm::normalize(front);
 }
 
 // glm::vec3    Camera::interpolate( const glm::vec3& v0, const glm::vec3& v1, tTimePoint last, size_t duration ) {

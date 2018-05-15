@@ -37,6 +37,7 @@ typedef struct  sKey {
 
 typedef struct  sMouse {
     glm::dvec2                          pos;
+    glm::dvec2                          prevPos;
     std::array<short, N_MOUSE_BUTTON>   button;
 }               tMouse;
 
@@ -52,6 +53,7 @@ public:
     short               getKeyValue( int k ) const { return (key[k].value); };
     short               getMouseButtonValue( int b ) const { return (mouse.button[b]); };
     const glm::dvec2&   getMousePosition( void ) const { return (mouse.pos); };
+    const tMouse&       getMouse( void ) const { return (mouse); };
 
     const std::array<tKey, N_KEY>&  getKeys( void ) const { return (key); };
 

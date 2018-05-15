@@ -25,7 +25,9 @@ void	Renderer::loop( void ) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         this->env->getController()->update();
-        this->camera.handleKeys( this->env->getController()->getKeys() );
+        // this->camera.handleKeys( this->env->getController()->getKeys() );
+        // this->camera.handleMouse( this->env->getController()->getMouse() );
+        this->camera.handleInputs(this->env->getController()->getKeys(), this->env->getController()->getMouse());
 
         this->renderDepth();
         this->renderLights();
@@ -123,4 +125,5 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
 
     this->shader["default"]->use();
     this->shader["default"]->setIntUniformValue("shadowMap", 0);
+    this->shader["default"]->setIntUniformValue("texture_diffuse1", 1);
 }

@@ -24,18 +24,17 @@ void    Mesh::render( Shader shader ) {
     for (size_t i = 0; i < this->textures.size(); ++i) {
         if (this->textures[i].type == "skybox")
             glBindTexture(GL_TEXTURE_CUBE_MAP, this->textures[i].id);
-        // else {
-        //     glActiveTexture(GL_TEXTURE0 + i);
-        //     std::string number;
-        //     std::string name = this->textures[i].type;
-        //     if (name == "texture_diffuse")  number = std::to_string((n[0])++);
-        //     if (name == "texture_specular") number = std::to_string((n[1])++);
-        //     if (name == "texture_normal")   number = std::to_string((n[2])++);
-        //     if (name == "texture_height")   number = std::to_string((n[3])++);
-        //     // glUniform1i(glGetUniformLocation(shader.id, (name + number).c_str()), i);
-        //     shader.setIntUniformValue(name + number, i);
-        //     glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
-        // }
+        else {
+            glActiveTexture(GL_TEXTURE0 + i);
+            std::string number;
+            std::string name = this->textures[i].type;
+            if (name == "texture_diffuse")  number = std::to_string((n[0])++);
+            if (name == "texture_specular") number = std::to_string((n[1])++);
+            if (name == "texture_normal")   number = std::to_string((n[2])++);
+            if (name == "texture_height")   number = std::to_string((n[3])++);
+            shader.setIntUniformValue(name + number, i);
+            glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
+        }
     }
     /* render */
     glBindVertexArray(this->vao);

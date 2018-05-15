@@ -28,7 +28,7 @@ public:
     // glm::vec3            interpolate( const glm::vec3& v0, const glm::vec3& v1, tTimePoint last, size_t duration = 250 );
     tMilliseconds       getElapsedMilliseconds( tTimePoint last );
 
-    void                handleKeys( const std::array<tKey, N_KEY>& keys );
+    void                handleInputs( const std::array<tKey, N_KEY>& keys, const tMouse& mouse );
     /* Setters */
     void                setFov( float fov );
     void                setAspect( float aspect );
@@ -38,7 +38,7 @@ public:
     const glm::mat4&    getProjectionMatrix( void ) const { return (projectionMatrix); };
     const glm::mat4&    getViewMatrix( void ) const { return (viewMatrix); };
     const glm::vec3&    getPosition( void ) const { return (position); };
-    const glm::vec3&    getTarget( void ) const { return (target); };
+    const glm::vec3&    getCameraFront( void ) const { return (cameraFront); };
     const float         getFov( void ) const { return (fov); };
     const float         getAspect( void ) const { return (aspect); };
     const float         getNear( void ) const { return (near); };
@@ -48,10 +48,15 @@ private:
     glm::mat4   projectionMatrix;
     glm::mat4   viewMatrix;
     glm::vec3   position;
-    glm::vec3   target;
+    glm::vec3   cameraFront;
     float       fov;
     float       aspect;
     float       near;
     float       far;
 
+    float       pitch;
+    float       yaw;
+
+    void                handleKeys( const std::array<tKey, N_KEY>& keys );
+    void                handleMouse( const tMouse& mouse, float sensitivity = 0.1f );
 };

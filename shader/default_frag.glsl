@@ -34,8 +34,8 @@ in vec4 FragPosLightSpace;
 
 #define MAX_POINT_LIGHTS 8
 
-// uniform sampler2D texture_diffuse1;
 uniform sampler2D shadowMap;
+uniform sampler2D texture_diffuse1;
 
 uniform vec3 viewPos;
 uniform sMaterial material;
@@ -57,8 +57,8 @@ void main() {
     for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
         result += computePointLight(pointLights[i], normal, FragPos, viewDir);
 
-    // FragColor = texture(texture_diffuse1, TexCoords) + vec4(result, 1.0f);
-    FragColor = vec4(result, 1.0f);
+    FragColor = texture(texture_diffuse1, TexCoords) + vec4(result, 1.0f);
+    // FragColor = vec4(result, 1.0f);
     FragColor.w = material.opacity;
 }
 
