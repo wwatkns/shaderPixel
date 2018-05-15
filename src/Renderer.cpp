@@ -39,12 +39,11 @@ void    Renderer::renderDepth( void ) {
     Light*  directionalLight = this->env->getDirectionalLight();
     if (directionalLight) {
         glm::mat4 lightProjection, lightView;
-        // float near_plane = 1.0f, far_plane = 7.5f;
-        float near_plane = 0.1f, far_plane = 75.0f;
+        float near_plane = 0.1f, far_plane = 35.0f;
         lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
         lightView = glm::lookAt(directionalLight->getPosition(), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         this->lightSpaceMat = lightProjection * lightView;
-        // render scene from light's point of view
+        /* render scene from light's point of view */
         this->shader["shadowMap"]->use();
         this->shader["shadowMap"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
 
@@ -56,9 +55,8 @@ void    Renderer::renderDepth( void ) {
         for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
             (*it)->render(*this->shader["shadowMap"]);
 
+        /* reset viewport and framebuffer*/
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // reset viewport
         glViewport(0, 0, this->env->getWindow().width, this->env->getWindow().height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
@@ -80,12 +78,10 @@ void    Renderer::renderMeshes( void ) {
     this->shader["default"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
     this->shader["default"]->setMat4UniformValue("view", this->camera.getViewMatrix());
     this->shader["default"]->setVec3UniformValue("viewPos", this->camera.getPosition());
-
     this->shader["default"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
     glActiveTexture(GL_TEXTURE0);// 1);
     this->shader["default"]->setIntUniformValue("shadowMap", 0);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
-
     /* render models */
     for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
         (*it)->render(*this->shader["default"]);
@@ -112,8 +108,8 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     glGenTextures(1, &this->shadowDepthMap.id);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };

@@ -54,8 +54,8 @@ void main() {
     vec3 viewDir = normalize(viewPos - FragPos);
 
     vec3 result = computeDirectionalLight(directionalLight, normal, viewDir, FragPosLightSpace);
-    // for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
-    //     result += computePointLight(pointLights[i], normal, FragPos, viewDir);
+    for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
+        result += computePointLight(pointLights[i], normal, FragPos, viewDir);
 
     // FragColor = texture(texture_diffuse1, TexCoords) + vec4(result, 1.0f);
     FragColor = vec4(result, 1.0f);
@@ -78,7 +78,6 @@ vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir
     // vec3 ambient  = light.ambient  * vec3(texture(material.diffuse, TexCoords));
     // vec3 diffuse  = light.diffuse  * diff * vec3(texture(material.diffuse, TexCoords));
     // vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
-
     // return (ambient + (diffuse + specular));
     return (ambient + (1.0 - shadow) * (diffuse + specular));
 }
@@ -105,7 +104,7 @@ vec3 computePointLight( sPointLight light, vec3 normal, vec3 fragPos, vec3 viewD
 }
 
 float computeShadows( vec4 fragPosLightSpace, sDirectionalLight light ) {
-    // perform perspective divide
+    /* perform perspective divide and put in interval [0,1] */
     vec3 projCoords = (fragPosLightSpace.xyz / fragPosLightSpace.w) * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     float closestDepth = texture(shadowMap, projCoords.xy).r;
@@ -115,9 +114,9 @@ float computeShadows( vec4 fragPosLightSpace, sDirectionalLight light ) {
     vec3 normal = normalize(Normal);
     vec3 lightDir = normalize(light.position - FragPos);
     float bias = 0.0025;
-    // check whether current frag pos is in shadow
+    /* Default */
     // float shadow = (currentDepth - bias > closestDepth ? 1.0 : 0.0);
-    // PCF
+    /* PCF */
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for (int x = -1; x <= 1; ++x) {
@@ -127,7 +126,6 @@ float computeShadows( vec4 fragPosLightSpace, sDirectionalLight light ) {
         }
     }
     shadow /= 9.0;
-
     // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
     if (projCoords.z > 1.0)
         shadow = 0.0;

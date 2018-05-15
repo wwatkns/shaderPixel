@@ -17,7 +17,7 @@ Env::Env( void ) {
         }};
         this->lights = {{
             new Light(
-                glm::vec3(10, 10, -1),
+                glm::vec3(10, 10, 6),
                 glm::vec3(0.77f, 0.88f, 1.0f) * 0.05f,
                 glm::vec3(1.0f, 0.964f, 0.77f),
                 glm::vec3(1.0f, 1.0f, 1.0f),
@@ -33,25 +33,17 @@ Env::Env( void ) {
                 0.032f,
                 eLightType::point
             ),
-            new Light(
-                glm::vec3(-2.0f, 1.0f, 5.0f),
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f, 1.0f, 0.0f),
-                glm::vec3(1.0f, 1.0f, 1.0f),
-                1.0f,
-                0.09f,
-                0.032f,
-                eLightType::point
-            ),
+            // new Light(
+            //     glm::vec3(-2.0f, 1.0f, 5.0f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f, 1.0f, 0.0f),
+            //     glm::vec3(1.0f, 1.0f, 1.0f),
+            //     1.0f,
+            //     0.09f,
+            //     0.032f,
+            //     eLightType::point
+            // ),
         }};
-        // this->skybox = new Model(std::vector<std::string>{{
-        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetLeft2048.png",
-        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetRight2048.png",
-        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetUp2048.png",
-        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetDown2048.png",
-        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetFront2048.png",
-        //     "/Users/wwatkins/Downloads/SkyboxSet1/SunSet/SunSetBack2048.png",
-        // }});
         this->skybox = new Model(std::vector<std::string>{{
             "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
             "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterRight2048.png",
