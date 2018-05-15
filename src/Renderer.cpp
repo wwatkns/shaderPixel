@@ -3,7 +3,7 @@
 
 Renderer::Renderer( Env* env ) :
 env(env),
-camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
+camera(60, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["default"] = new Shader("./shader/default_vert.glsl", "./shader/default_frag.glsl");
     this->shader["skybox"]  = new Shader("./shader/skybox_vert.glsl", "./shader/skybox_frag.glsl");
     this->shader["shadowMap"] = new Shader("./shader/shadow_mapping_vert.glsl", "./shader/shadow_mapping_frag.glsl");
@@ -19,17 +19,16 @@ void	Renderer::loop( void ) {
     glEnable(GL_MULTISAMPLE); /* multisampling MSAA */
     glEnable(GL_BLEND); /* transparency */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_CULL_FACE); /* enable face-culling (back faces of triangles are not rendered) */
     while (!glfwWindowShouldClose(this->env->getWindow().ptr)) {
         glfwPollEvents();
         glClearColor(0.09f, 0.08f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         this->env->getController()->update();
-        // this->camera.handleKeys( this->env->getController()->getKeys() );
-        // this->camera.handleMouse( this->env->getController()->getMouse() );
         this->camera.handleInputs(this->env->getController()->getKeys(), this->env->getController()->getMouse());
 
-        this->renderDepth();
+        this->updateShadowDepthMap();
         this->renderLights();
         this->renderMeshes();
         this->renderSkybox();
@@ -37,7 +36,7 @@ void	Renderer::loop( void ) {
     }
 }
 
-void    Renderer::renderDepth( void ) {
+void    Renderer::updateShadowDepthMap( void ) {
     Light*  directionalLight = this->env->getDirectionalLight();
     if (directionalLight) {
         glm::mat4 lightProjection, lightView;
@@ -81,7 +80,7 @@ void    Renderer::renderMeshes( void ) {
     this->shader["default"]->setMat4UniformValue("view", this->camera.getViewMatrix());
     this->shader["default"]->setVec3UniformValue("viewPos", this->camera.getPosition());
     this->shader["default"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
-    glActiveTexture(GL_TEXTURE0);// 1);
+    glActiveTexture(GL_TEXTURE0);
     this->shader["default"]->setIntUniformValue("shadowMap", 0);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
     /* render models */
@@ -90,6 +89,7 @@ void    Renderer::renderMeshes( void ) {
 }
 
 void    Renderer::renderSkybox( void ) {
+    glDisable(GL_CULL_FACE); /* disable face-culling as the skybox shows back-faces */
     glDepthFunc(GL_LEQUAL);
     this->shader["skybox"]->use();
     this->shader["skybox"]->setMat4UniformValue("view", glm::mat4(glm::mat3(this->camera.getViewMatrix())));
@@ -97,6 +97,7 @@ void    Renderer::renderSkybox( void ) {
     /* render skybox */
     this->env->getSkybox()->render(*this->shader["skybox"]);
     glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
 }
 
 void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) {

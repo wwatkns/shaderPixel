@@ -8,12 +8,30 @@ Env::Env( void ) {
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
         this->models = {{
+            // new Model(
+            //     "/Users/wwatkins/Downloads/workshop/source/model.obj",
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
+            //     glm::vec3(10.0f, 10.0f, 10.0f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/stone-figure-of-xiuhcoatl-fire-serpent/source/2842228_201410112217/mesh/sculpt.obj",
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(-M_PI/2.0f, 0.0f, -M_PI/2.0f),
+            //     glm::vec3(1.0f, 1.0f, 1.0f)
+            // )
             new Model(
-                "/Users/wwatkins/Downloads/workshop/source/model.obj",
+                "/Users/wwatkins/Downloads/rameses-iv/source/model/model.obj",
                 glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
-                glm::vec3(10.0f, 10.0f, 10.0f)
-            ),
+                glm::vec3(-0.75, M_PI+0.25, M_PI/2.0f+0.07),
+                glm::vec3(1.0f, 1.0f, 1.0f)
+            )
+            // new Model(
+            //     "/Users/wwatkins/Downloads/end-composition/source/End-Composition/StandFlower.obj",
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0, 0, 0),
+            //     glm::vec3(1.0f, 1.0f, 1.0f)
+            // )
         }};
         this->lights = {{
             new Light(
@@ -45,12 +63,12 @@ Env::Env( void ) {
             // ),
         }};
         this->skybox = new Model(std::vector<std::string>{{
-            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
-            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterRight2048.png",
-            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterUp2048.png",
-            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterDown2048.png",
-            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterFront2048.png",
-            "/Users/wwatkins/Downloads/SkyboxSet1/ThickCloudsWater/ThickCloudsWaterBack2048.png",
+            "./resource/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
+            "./resource/ThickCloudsWater/ThickCloudsWaterRight2048.png",
+            "./resource/ThickCloudsWater/ThickCloudsWaterUp2048.png",
+            "./resource/ThickCloudsWater/ThickCloudsWaterDown2048.png",
+            "./resource/ThickCloudsWater/ThickCloudsWaterFront2048.png",
+            "./resource/ThickCloudsWater/ThickCloudsWaterBack2048.png",
         }});
 
         this->setupController();

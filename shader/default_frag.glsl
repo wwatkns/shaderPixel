@@ -1,8 +1,9 @@
 #version 400 core
 out vec4 FragColor;
 
+// the direction is always from the position to the center of the scene
 struct sDirectionalLight {
-    vec3 position; // the direction is always pointing to the center of the scene
+    vec3 position;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -43,6 +44,7 @@ uniform sDirectionalLight directionalLight;
 uniform sPointLight pointLights[MAX_POINT_LIGHTS];
 uniform int nPointLights;
 
+
 /* prototypes */
 vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec4 fragPosLightSpace );
 vec3 computePointLight( sPointLight light, vec3 normal, vec3 fragPos,vec3 viewDir );
@@ -54,11 +56,10 @@ void main() {
     vec3 viewDir = normalize(viewPos - FragPos);
 
     vec3 result = computeDirectionalLight(directionalLight, normal, viewDir, FragPosLightSpace);
-    for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
-        result += computePointLight(pointLights[i], normal, FragPos, viewDir);
+    // for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
+        // result += computePointLight(pointLights[i], normal, FragPos, viewDir);
 
-    FragColor = texture(texture_diffuse1, TexCoords) + vec4(result, 1.0f);
-    // FragColor = vec4(result, 1.0f);
+    FragColor = texture(texture_diffuse1, TexCoords) * vec4(result, 1.0f);
     FragColor.w = material.opacity;
 }
 

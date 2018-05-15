@@ -6,7 +6,6 @@ Mesh::Mesh( std::vector<tVertex> vertices, std::vector<unsigned int> indices, st
 }
 
 Mesh::~Mesh( void ) {
-    // glDeleteVertexArrays(1, &this->vao); // this is the faulty part
     glDeleteBuffers(1, &this->vbo);
     glDeleteBuffers(1, &this->ebo);
 }
@@ -25,14 +24,14 @@ void    Mesh::render( Shader shader ) {
         if (this->textures[i].type == "skybox")
             glBindTexture(GL_TEXTURE_CUBE_MAP, this->textures[i].id);
         else {
-            glActiveTexture(GL_TEXTURE0 + i);
+            glActiveTexture(GL_TEXTURE0 + i + 1);
             std::string number;
             std::string name = this->textures[i].type;
             if (name == "texture_diffuse")  number = std::to_string((n[0])++);
             if (name == "texture_specular") number = std::to_string((n[1])++);
             if (name == "texture_normal")   number = std::to_string((n[2])++);
             if (name == "texture_height")   number = std::to_string((n[3])++);
-            shader.setIntUniformValue(name + number, i);
+            shader.setIntUniformValue(name + number, i + 1);
             glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
         }
     }
@@ -68,11 +67,7 @@ void    Mesh::setup( int mode ) {
     // texture coord attribute
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(tVertex), reinterpret_cast<GLvoid*>(offsetof(tVertex, TexCoords)));
-    // glEnableVertexAttribArray(3);
-    // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), reinterpret_cast<GLvoid*>(offsetof(tVertex, Tangent)));
-    // glEnableVertexAttribArray(4);
-    // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), reinterpret_cast<GLvoid*>(offsetof(tVertex, Bitangent)));
-
+    
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }

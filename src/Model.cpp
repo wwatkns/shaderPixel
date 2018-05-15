@@ -6,7 +6,6 @@
 static inline glm::vec3    copyAssimpVector( const aiVector3D& aiv ) {
     return (glm::vec3(aiv.x, aiv.y, aiv.z));
 }
-
 static inline glm::vec4    copyAssimpColor( const aiColor4D& aic ) {
     return (glm::vec4(aic.r, aic.g, aic.b, aic.a));
 }
@@ -71,7 +70,7 @@ void    Model::update( void ) {
 void    Model::loadModel( const std::string& path ) {
     std::cout << "Loading: " << path << std::endl;
     Assimp::Importer import;
-    const aiScene*  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals); // aiProcess_CalcTangentSpace
+    const aiScene*  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals); // aiProcess_CalcTangentSpace
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         throw Exception::ModelError("AssimpLoader", import.GetErrorString());
@@ -104,8 +103,6 @@ Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
         vertex.Position = copyAssimpVector(mesh->mVertices[i]);
         vertex.Normal = copyAssimpVector(mesh->mNormals[i]);
         vertex.TexCoords = (mesh->mTextureCoords[0] ? glm::vec2(copyAssimpVector(mesh->mTextureCoords[0][i])) : glm::vec2(0.0f, 0.0f));
-        // vertex.Tangent = copyAssimpVector(mesh->mTangents[i]);
-        // vertex.Bitangent = copyAssimpVector(mesh->mBitangents[i]);
         vertices.push_back(vertex);
     }
     /* indices */
@@ -139,11 +136,6 @@ Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
     meshMaterial.shininess = f;
     material->Get(AI_MATKEY_OPACITY, f);
     meshMaterial.opacity = f;
-
-    // std::cout << "ambient: " << glm::to_string(meshMaterial.ambient) << std::endl;
-    // std::cout << "diffuse: " << glm::to_string(meshMaterial.diffuse) << std::endl;
-    // std::cout << "diffuse: " << glm::to_string(meshMaterial.specular) << std::endl;
-
     return (Mesh(vertices, indices, textures, meshMaterial));
 }
 

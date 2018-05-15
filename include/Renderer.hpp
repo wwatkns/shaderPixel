@@ -36,7 +36,7 @@ public:
     ~Renderer( void );
 
     void	loop( void );
-    void    renderDepth( void ); // change name
+    void    updateShadowDepthMap( void );
     void    renderLights( void );
     void    renderMeshes( void );
     void    renderSkybox( void );
