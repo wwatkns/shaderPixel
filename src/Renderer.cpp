@@ -8,6 +8,7 @@ camera(60, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["skybox"]  = new Shader("./shader/skybox_vert.glsl", "./shader/skybox_frag.glsl");
     this->shader["shadowMap"] = new Shader("./shader/shadow_mapping_vert.glsl", "./shader/shadow_mapping_frag.glsl");
     this->initShadowDepthMap(4096, 4096);
+    this->useShadows = 0;
 }
 
 Renderer::~Renderer( void ) {
@@ -28,6 +29,8 @@ void	Renderer::loop( void ) {
         this->env->getController()->update();
         this->camera.handleInputs(this->env->getController()->getKeys(), this->env->getController()->getMouse());
 
+        this->useShadows = this->env->getController()->getKeyValue(GLFW_KEY_P);
+
         this->updateShadowDepthMap();
         this->renderLights();
         this->renderMeshes();
@@ -38,7 +41,7 @@ void	Renderer::loop( void ) {
 
 void    Renderer::updateShadowDepthMap( void ) {
     Light*  directionalLight = this->env->getDirectionalLight();
-    if (directionalLight) {
+    if (this->useShadows && directionalLight) {
         glm::mat4 lightProjection, lightView;
         float near_plane = 0.1f, far_plane = 35.0f;
         lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
@@ -82,6 +85,7 @@ void    Renderer::renderMeshes( void ) {
     this->shader["default"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
     glActiveTexture(GL_TEXTURE0);
     this->shader["default"]->setIntUniformValue("shadowMap", 0);
+    this->shader["default"]->setIntUniformValue("state.use_shadows", this->useShadows);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
     /* render models */
     for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
@@ -127,4 +131,5 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     this->shader["default"]->use();
     this->shader["default"]->setIntUniformValue("shadowMap", 0);
     this->shader["default"]->setIntUniformValue("texture_diffuse1", 1);
+    this->shader["default"]->setIntUniformValue("texture_normal1", 2);
 }

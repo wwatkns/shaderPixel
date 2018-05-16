@@ -17,7 +17,9 @@ void    Mesh::render( Shader shader ) {
     shader.setVec3UniformValue("material.specular", this->material.specular);
     shader.setFloatUniformValue("material.shininess", this->material.shininess);
     shader.setFloatUniformValue("material.opacity", this->material.opacity);
-
+    /* reset textures usage states */
+    shader.setIntUniformValue("state.use_texture_diffuse", 0);
+    shader.setIntUniformValue("state.use_texture_normal", 0);
     /* set texture attributes */
     std::array<unsigned int, 4> n = { 1, 1, 1, 1 };
     for (size_t i = 0; i < this->textures.size(); ++i) {
@@ -33,6 +35,7 @@ void    Mesh::render( Shader shader ) {
             if (name == "texture_height")   number = std::to_string((n[3])++);
             shader.setIntUniformValue(name + number, i + 1);
             glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
+            shader.setIntUniformValue("state.use_"+name, 1); // activate texture
         }
     }
     /* render */
@@ -67,7 +70,13 @@ void    Mesh::setup( int mode ) {
     // texture coord attribute
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(tVertex), reinterpret_cast<GLvoid*>(offsetof(tVertex, TexCoords)));
-    
+    // tangent attribute
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), reinterpret_cast<GLvoid*>(offsetof(tVertex, Tangent)));
+    // bitangent attribute
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(tVertex), reinterpret_cast<GLvoid*>(offsetof(tVertex, Bitangent)));
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }

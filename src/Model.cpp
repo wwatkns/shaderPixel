@@ -33,6 +33,8 @@ Model::Model( const std::vector<std::string>& paths ) : position(glm::vec3(0, 0,
         vertex.Position = glm::vec3(v[i-5], v[i-4], v[i-3]);
         vertex.Normal = glm::vec3(0, 0, 0);
         vertex.TexCoords = glm::vec2(v[i-2], v[i-1]);
+        vertex.Tangent = glm::vec3(0, 0, 0);
+        vertex.Bitangent = glm::vec3(0, 0, 0);
         vertices.push_back(vertex);
     }
     tMaterial material = (tMaterial){ glm::vec3(0,0,0), glm::vec3(0,0,0), glm::vec3(0,0,0), 0.0f };
@@ -70,7 +72,7 @@ void    Model::update( void ) {
 void    Model::loadModel( const std::string& path ) {
     std::cout << "Loading: " << path << std::endl;
     Assimp::Importer import;
-    const aiScene*  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals); // aiProcess_CalcTangentSpace
+    const aiScene*  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         throw Exception::ModelError("AssimpLoader", import.GetErrorString());
@@ -103,6 +105,8 @@ Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
         vertex.Position = copyAssimpVector(mesh->mVertices[i]);
         vertex.Normal = copyAssimpVector(mesh->mNormals[i]);
         vertex.TexCoords = (mesh->mTextureCoords[0] ? glm::vec2(copyAssimpVector(mesh->mTextureCoords[0][i])) : glm::vec2(0.0f, 0.0f));
+        vertex.Tangent = copyAssimpVector(mesh->mTangents[i]);
+        vertex.Bitangent = copyAssimpVector(mesh->mBitangents[i]);
         vertices.push_back(vertex);
     }
     /* indices */
@@ -144,6 +148,7 @@ std::vector<tTexture>   Model::loadMaterialTextures( aiMaterial* mat, aiTextureT
     for (unsigned int i = 0; i < mat->GetTextureCount(type); ++i) {
         aiString str;
         mat->GetTexture(type, i, &str);
+        std::cout << str.C_Str() << std::endl;
         bool skip = false;
         for (unsigned int j = 0; j < this->textures_loaded.size(); ++j) {
             if (std::strcmp(this->textures_loaded[j].path.data(), str.C_Str()) == 0) {

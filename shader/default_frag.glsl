@@ -28,39 +28,60 @@ struct sMaterial {
     float opacity;
 };
 
+struct sState {
+    bool use_shadows;
+    bool use_texture_diffuse;
+    bool use_texture_normal;
+};
+
+
 in vec3 FragPos;
 in vec3 Normal;
 in vec2 TexCoords;
+in vec3 Tangent;
+in vec3 Bitangent;
 in vec4 FragPosLightSpace;
 
 #define MAX_POINT_LIGHTS 8
 
+
 uniform sampler2D shadowMap;
 uniform sampler2D texture_diffuse1;
+uniform sampler2D texture_normal1;
 
 uniform vec3 viewPos;
 uniform sMaterial material;
 uniform sDirectionalLight directionalLight;
 uniform sPointLight pointLights[MAX_POINT_LIGHTS];
 uniform int nPointLights;
+uniform sState state;
 
 
 /* prototypes */
 vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec4 fragPosLightSpace );
 vec3 computePointLight( sPointLight light, vec3 normal, vec3 fragPos,vec3 viewDir );
 float computeShadows( vec4 fragPosLightSpace, sDirectionalLight light );
+vec3 computeNormal( void );
 
 
 void main() {
-    vec3 normal = normalize(Normal);
+    vec3 normal = computeNormal();
     vec3 viewDir = normalize(viewPos - FragPos);
 
     vec3 result = computeDirectionalLight(directionalLight, normal, viewDir, FragPosLightSpace);
-    // for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
-        // result += computePointLight(pointLights[i], normal, FragPos, viewDir);
+    for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
+        result += computePointLight(pointLights[i], normal, FragPos, viewDir);
 
-    FragColor = texture(texture_diffuse1, TexCoords) * vec4(result, 1.0f);
+    FragColor = (state.use_texture_diffuse ? texture(texture_diffuse1, TexCoords) * vec4(result, 1.0f) : vec4(result, 1.0f));
     FragColor.w = material.opacity;
+}
+
+vec3 computeNormal( void ) {
+    if (state.use_texture_normal) {
+        mat3 TBN = mat3(Tangent, cross(Tangent, Normal), Normal);
+        return (TBN * normalize(texture(texture_normal1, TexCoords).rgb * 2.0 - 1.0));
+    }
+    return (normalize(Normal));
 }
 
 vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec4 fragPosLightSpace ) {
@@ -74,13 +95,15 @@ vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir
     vec3 ambient  = light.ambient  * material.diffuse;
     vec3 diffuse  = light.diffuse  * diff * material.diffuse;
     vec3 specular = light.specular * spec * material.specular;
-    float shadow  = computeShadows(fragPosLightSpace, light);
     /* for diffuse and specular textures */
     // vec3 ambient  = light.ambient  * vec3(texture(material.diffuse, TexCoords));
     // vec3 diffuse  = light.diffuse  * diff * vec3(texture(material.diffuse, TexCoords));
     // vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
-    // return (ambient + (diffuse + specular));
-    return (ambient + (1.0 - shadow) * (diffuse + specular));
+    if (state.use_shadows) {
+        float shadow  = computeShadows(fragPosLightSpace, light);
+        return (ambient + (1.0 - shadow) * (diffuse + specular));
+    }
+    return (ambient + (diffuse + specular));
 }
 
 vec3 computePointLight( sPointLight light, vec3 normal, vec3 fragPos, vec3 viewDir ) {

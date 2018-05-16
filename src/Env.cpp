@@ -20,18 +20,18 @@ Env::Env( void ) {
             //     glm::vec3(-M_PI/2.0f, 0.0f, -M_PI/2.0f),
             //     glm::vec3(1.0f, 1.0f, 1.0f)
             // )
-            new Model(
-                "/Users/wwatkins/Downloads/rameses-iv/source/model/model.obj",
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(-0.75, M_PI+0.25, M_PI/2.0f+0.07),
-                glm::vec3(1.0f, 1.0f, 1.0f)
-            )
             // new Model(
-            //     "/Users/wwatkins/Downloads/end-composition/source/End-Composition/StandFlower.obj",
+            //     "/Users/wwatkins/Downloads/rameses-iv/source/model/model.obj",
             //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0, 0, 0),
+            //     glm::vec3(-0.75, M_PI+0.25, M_PI/2.0f+0.07),
             //     glm::vec3(1.0f, 1.0f, 1.0f)
             // )
+            new Model(
+                "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(0, 0, 0),
+                glm::vec3(1.0f, 1.0f, 1.0f)
+            )
         }};
         this->lights = {{
             new Light(
@@ -42,7 +42,7 @@ Env::Env( void ) {
                 eLightType::directional
             ),
             new Light(
-                glm::vec3(1.0f, 1.0f, 0.0f),
+                glm::vec3(3.0f, 1.0f, 0.0f),
                 glm::vec3(0.0f, 0.0f, 0.0f),
                 glm::vec3(1.0f, 0.0f, 0.0f),
                 glm::vec3(1.0f, 1.0f, 1.0f),
@@ -114,7 +114,7 @@ void	Env::initGlfwWindow( size_t width, size_t height ) {
 
 void    Env::setupController( void ) {
     /* set key properties here */
-    // this->controller->setKeyProperties(GLFW_KEY_C, eKeyMode::toggle, 0, 1000);
+    this->controller->setKeyProperties(GLFW_KEY_P, eKeyMode::toggle, 1, 1000);
     // this->controller->setKeyProperties(GLFW_KEY_M, eKeyMode::cycle, 1, 300, 3);
 }
 

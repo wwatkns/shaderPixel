@@ -47,6 +47,7 @@ private:
     tShaderMap      shader;
     tShadowDepthMap shadowDepthMap;
     glm::mat4       lightSpaceMat;
+    int             useShadows;
 
     void    initShadowDepthMap( const size_t width = 1024, const size_t height = 1024 );
 
