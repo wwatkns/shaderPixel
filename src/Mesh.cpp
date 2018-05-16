@@ -20,6 +20,7 @@ void    Mesh::render( Shader shader ) {
     /* reset textures usage states */
     shader.setIntUniformValue("state.use_texture_diffuse", 0);
     shader.setIntUniformValue("state.use_texture_normal", 0);
+    shader.setIntUniformValue("state.use_texture_specular", 0);
     /* set texture attributes */
     std::array<unsigned int, 4> n = { 1, 1, 1, 1 };
     for (size_t i = 0; i < this->textures.size(); ++i) {
@@ -35,7 +36,7 @@ void    Mesh::render( Shader shader ) {
             if (name == "texture_height")   number = std::to_string((n[3])++);
             shader.setIntUniformValue(name + number, i + 1);
             glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
-            shader.setIntUniformValue("state.use_"+name, 1); // activate texture
+            shader.setIntUniformValue("state.use_"+name, 1); // activate texture usage
         }
     }
     /* render */

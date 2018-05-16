@@ -132,4 +132,5 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     this->shader["default"]->setIntUniformValue("shadowMap", 0);
     this->shader["default"]->setIntUniformValue("texture_diffuse1", 1);
     this->shader["default"]->setIntUniformValue("texture_normal1", 2);
+    this->shader["default"]->setIntUniformValue("texture_specular1", 3);
 }
