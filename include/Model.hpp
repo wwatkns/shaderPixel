@@ -46,13 +46,28 @@ private:
     glm::vec3               orientation;        // the orientation
     glm::vec3               scale;              // the scale
 
-    std::vector<Mesh>       meshes;
+    std::vector<Mesh*>      meshes;
     std::string             directory;
     std::vector<tTexture>   textures_loaded;
 
+
+    /*
+        new Model {
+            "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+            std::vector<glm::vec3>({ // create 4 instances of the same model
+                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(5.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f, 0.0f, 5.0f),
+                glm::vec3(5.0f, 0.0f, 5.0f),
+            }),
+            glm::vec3(0.0f),
+            glm::vec3(0.5f)
+        }
+    */
+
     void                    loadModel( const std::string& path );
     void                    processNode( aiNode* node, const aiScene* scene );
-    Mesh                    processMesh( aiMesh* mesh, const aiScene* scene );
+    Mesh*                   processMesh( aiMesh* mesh, const aiScene* scene );
     std::vector<tTexture>   loadMaterialTextures( aiMaterial* mat, aiTextureType type, std::string typeName );
 
 };

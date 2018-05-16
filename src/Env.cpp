@@ -25,13 +25,63 @@ Env::Env( void ) {
             //     glm::vec3(0.0f, 0.0f, 0.0f),
             //     glm::vec3(-0.75, M_PI+0.25, M_PI/2.0f+0.07),
             //     glm::vec3(1.0f, 1.0f, 1.0f)
-            // )
+            // ),
             new Model(
-                "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+                "/Users/wwatkins/Downloads/house01/source/House01.obj",
                 glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0, 0, 0),
-                glm::vec3(1.0f, 1.0f, 1.0f)
-            )
+                glm::vec3(0.0f),
+                glm::vec3(1.0f)
+            ),
+            new Model(
+                "/Users/wwatkins/Downloads/house02/source/House02.obj",
+                glm::vec3(10.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f),
+                glm::vec3(1.0f)
+            ),
+            new Model(
+                "/Users/wwatkins/Downloads/house03/source/House03.obj",
+                glm::vec3(20.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f),
+                glm::vec3(1.0f)
+            ),
+            new Model(
+                "/Users/wwatkins/Downloads/house04/source/House04.obj",
+                glm::vec3(30.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f),
+                glm::vec3(1.0f)
+            ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/center-structure/source/Center_structure.obj",
+            //     glm::vec3(5.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(1.0f)
+            // ),
+
+            // new Model(
+            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(0.5f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+            //     glm::vec3(5.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(0.5f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+            //     glm::vec3(0.0f, 0.0f, 5.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(0.5f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+            //     glm::vec3(5.0f, 0.0f, 5.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(0.5f)
+            // ),
+
         }};
         this->lights = {{
             new Light(
@@ -102,7 +152,7 @@ void	Env::initGlfwEnvironment( const std::string& glVersion ) {
 }
 
 void	Env::initGlfwWindow( size_t width, size_t height ) {
-    glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
+    // glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
 	if (!(this->window.ptr = glfwCreateWindow(width, height, "shaderPixel", NULL, NULL)))
         throw Exception::InitError("glfwCreateWindow failed");
 	glfwMakeContextCurrent(this->window.ptr);

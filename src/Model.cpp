@@ -45,11 +45,13 @@ Model::Model( const std::vector<std::string>& paths ) : position(glm::vec3(0, 0,
     texture.type = "skybox";
     textures.push_back(texture);
 
-    this->meshes.push_back(Mesh(vertices, indices, textures, material));
+    this->meshes.push_back(new Mesh(vertices, indices, textures, material));
     this->update();
 }
 
 Model::~Model( void ) {
+    for (unsigned int i = 0; i < this->meshes.size(); ++i)
+        delete this->meshes[i];
 }
 
 void    Model::render( Shader shader ) {
@@ -57,7 +59,7 @@ void    Model::render( Shader shader ) {
     this->update();
     shader.setMat4UniformValue("model", this->transform);
     for (unsigned int i = 0; i < this->meshes.size(); ++i)
-        this->meshes[i].render(shader);
+        this->meshes[i]->render(shader);
 }
 
 void    Model::update( void ) {
@@ -92,7 +94,7 @@ void    Model::processNode( aiNode* node, const aiScene* scene ) {
         this->processNode(node->mChildren[i], scene);
 }
 
-Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
+Mesh*    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
     std::vector<tVertex>        vertices;
     std::vector<unsigned int>   indices;
     std::vector<tTexture>       textures;
@@ -124,8 +126,8 @@ Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
     std::vector<tTexture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-    std::vector<tTexture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
-    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+    std::vector<tTexture> emissiveMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_emissive");
+    textures.insert(textures.end(), emissiveMaps.begin(), emissiveMaps.end());
 
     /* process the materials attributes */
     float   f;
@@ -140,7 +142,7 @@ Mesh    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
     meshMaterial.shininess = f;
     material->Get(AI_MATKEY_OPACITY, f);
     meshMaterial.opacity = f;
-    return (Mesh(vertices, indices, textures, meshMaterial));
+    return (new Mesh(vertices, indices, textures, meshMaterial));
 }
 
 std::vector<tTexture>   Model::loadMaterialTextures( aiMaterial* mat, aiTextureType type, std::string typeName ) {

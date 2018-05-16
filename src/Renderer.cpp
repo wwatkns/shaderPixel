@@ -3,7 +3,7 @@
 
 Renderer::Renderer( Env* env ) :
 env(env),
-camera(60, (float)env->getWindow().width / (float)env->getWindow().height) {
+camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["default"] = new Shader("./shader/default_vert.glsl", "./shader/default_frag.glsl");
     this->shader["skybox"]  = new Shader("./shader/skybox_vert.glsl", "./shader/skybox_frag.glsl");
     this->shader["shadowMap"] = new Shader("./shader/shadow_mapping_vert.glsl", "./shader/shadow_mapping_frag.glsl");
@@ -17,7 +17,7 @@ Renderer::~Renderer( void ) {
 void	Renderer::loop( void ) {
     glEnable(GL_DEPTH_TEST); /* z-buffering */
     glEnable(GL_FRAMEBUFFER_SRGB); /* gamma correction */
-    glEnable(GL_MULTISAMPLE); /* multisampling MSAA */
+    // glEnable(GL_MULTISAMPLE); /* multisampling MSAA */
     glEnable(GL_BLEND); /* transparency */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE); /* enable face-culling (back faces of triangles are not rendered) */
@@ -133,4 +133,5 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     this->shader["default"]->setIntUniformValue("texture_diffuse1", 1);
     this->shader["default"]->setIntUniformValue("texture_normal1", 2);
     this->shader["default"]->setIntUniformValue("texture_specular1", 3);
+    this->shader["default"]->setIntUniformValue("texture_emissive1", 4);
 }

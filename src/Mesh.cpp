@@ -6,6 +6,7 @@ Mesh::Mesh( std::vector<tVertex> vertices, std::vector<unsigned int> indices, st
 }
 
 Mesh::~Mesh( void ) {
+    glDeleteBuffers(1, &this->vao);
     glDeleteBuffers(1, &this->vbo);
     glDeleteBuffers(1, &this->ebo);
 }
@@ -21,6 +22,7 @@ void    Mesh::render( Shader shader ) {
     shader.setIntUniformValue("state.use_texture_diffuse", 0);
     shader.setIntUniformValue("state.use_texture_normal", 0);
     shader.setIntUniformValue("state.use_texture_specular", 0);
+    shader.setIntUniformValue("state.use_texture_emissive", 0);
     /* set texture attributes */
     std::array<unsigned int, 4> n = { 1, 1, 1, 1 };
     for (size_t i = 0; i < this->textures.size(); ++i) {
@@ -33,7 +35,7 @@ void    Mesh::render( Shader shader ) {
             if (name == "texture_diffuse")  number = std::to_string((n[0])++);
             if (name == "texture_specular") number = std::to_string((n[1])++);
             if (name == "texture_normal")   number = std::to_string((n[2])++);
-            if (name == "texture_height")   number = std::to_string((n[3])++);
+            if (name == "texture_emissive") number = std::to_string((n[3])++);
             shader.setIntUniformValue(name + number, i + 1);
             glBindTexture(GL_TEXTURE_2D, this->textures[i].id);
             shader.setIntUniformValue("state.use_"+name, 1); // activate texture usage
@@ -82,6 +84,6 @@ void    Mesh::setup( int mode ) {
     glBindVertexArray(0);
 }
 
-bool    sortByTransparency( const Mesh& a, const Mesh& b ) {
-    return (a.getMaterial().opacity > b.getMaterial().opacity);
+bool    sortByTransparency( const Mesh* a, const Mesh* b ) {
+    return (a->getMaterial().opacity > b->getMaterial().opacity);
 }

@@ -63,4 +63,4 @@ private:
 
 };
 
-bool sortByTransparency( const Mesh& a, const Mesh& b );
+bool sortByTransparency( const Mesh* a, const Mesh* b );
