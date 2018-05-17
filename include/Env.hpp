@@ -33,6 +33,8 @@ public:
     Model*                  getSkybox( void ) { return (skybox); };
     Light*                  getDirectionalLight( void );
 
+    Model*              quad; // NEW
+
 private:
     t_window            window;
     Controller*         controller;

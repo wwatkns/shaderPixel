@@ -40,6 +40,7 @@ public:
     void    renderLights( void );
     void    renderMeshes( void );
     void    renderSkybox( void );
+    void    renderShaders( void );
 
 private:
     Env*            env;

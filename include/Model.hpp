@@ -25,6 +25,7 @@ class Model {
 public:
     Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
     Model( const std::vector<std::string>& paths );  // cubemap constructor
+    Model( const glm::vec3& position, const glm::vec3& scale ); // billboard constructor
     ~Model( void );
 
     void            update( void );
@@ -50,21 +51,6 @@ private:
     std::string             directory;
     std::vector<tTexture>   textures_loaded;
 
-
-    /*
-        new Model {
-            "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-            std::vector<glm::vec3>({ // create 4 instances of the same model
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(5.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f, 0.0f, 5.0f),
-                glm::vec3(5.0f, 0.0f, 5.0f),
-            }),
-            glm::vec3(0.0f),
-            glm::vec3(0.5f)
-        }
-    */
-
     void                    loadModel( const std::string& path );
     void                    processNode( aiNode* node, const aiScene* scene );
     Mesh*                   processMesh( aiMesh* mesh, const aiScene* scene );
@@ -72,7 +58,6 @@ private:
 
 };
 
-unsigned int        loadTexture( const char* path, const std::string& directory );
-unsigned int        loadTexture( const char* path );
-
-unsigned int        loadCubemap( const std::vector<std::string>& paths );
+unsigned int            loadTexture( const char* path, const std::string& directory );
+unsigned int            loadTexture( const char* path );
+unsigned int            loadCubemap( const std::vector<std::string>& paths );

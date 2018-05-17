@@ -22,7 +22,6 @@ Model::Model( const std::string& path, const glm::vec3& position, const glm::vec
 
 /* this constructor will create a cubemap */
 Model::Model( const std::vector<std::string>& paths ) : position(glm::vec3(0, 0, 0)), orientation(glm::vec3(0, 0, 0)), scale(glm::vec3(1, 1, 1)) {
-    /* Create debug cube */
     std::vector<float>          v;
     std::vector<tVertex>        vertices;
     std::vector<unsigned int>   indices;
@@ -49,13 +48,41 @@ Model::Model( const std::vector<std::string>& paths ) : position(glm::vec3(0, 0,
     this->update();
 }
 
+/* this constructor will create a quad (used to render fractals shaders, ...) */
+Model::Model( const glm::vec3& position, const glm::vec3& scale ) : position(position), orientation(glm::vec3(0)), scale(scale){
+    std::vector<float>          v;
+    std::vector<tVertex>        vertices;
+    std::vector<unsigned int>   indices;
+    std::vector<tTexture>       textures;
+    /* create quad */
+    v = {{
+        -0.5,-0.5, 0.0,  0.0, 1.0, // top-left
+         0.5,-0.5, 0.0,  1.0, 1.0, // top-right
+         0.5, 0.5, 0.0,  1.0, 0.0, // bottom-right
+        -0.5, 0.5, 0.0,  0.0, 0.0  // bottom-left
+    }};
+    indices = {{ 0, 1, 2,  2, 3, 0 }};
+
+    for (size_t i = 5; i < v.size()+1; i += 5) {
+        tVertex vertex;
+        vertex.Position = glm::vec3(v[i-5], v[i-4], v[i-3]);
+        vertex.Normal = glm::vec3(0, 0, -1);
+        vertex.TexCoords = glm::vec2(v[i-2], v[i-1]);
+        vertex.Tangent = glm::vec3(0, 0, 0);
+        vertex.Bitangent = glm::vec3(0, 0, 0);
+        vertices.push_back(vertex);
+    }
+    tMaterial material = (tMaterial){ glm::vec3(0,0,0), glm::vec3(1,1,1), glm::vec3(0,0,0), 0.0f };
+    this->meshes.push_back(new Mesh(vertices, indices, textures, material));
+    this->update();
+}
+
 Model::~Model( void ) {
     for (unsigned int i = 0; i < this->meshes.size(); ++i)
         delete this->meshes[i];
 }
 
 void    Model::render( Shader shader ) {
-    // TODO: sort the transparent meshes by distance to camera
     this->update();
     shader.setMat4UniformValue("model", this->transform);
     for (unsigned int i = 0; i < this->meshes.size(); ++i)

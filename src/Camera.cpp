@@ -88,3 +88,15 @@ void    Camera::handleMouse( const tMouse& mouse, float sensitivity ) {
 tMilliseconds   Camera::getElapsedMilliseconds( tTimePoint last ) {
     return (std::chrono::steady_clock::now() - last);
 }
+
+// TODO
+// CameraRight_worldspace = {ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]}
+// CameraUp_worldspace = {ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]}
+
+glm::vec3   Camera::getCameraRight( void ) const {
+    return glm::transpose(glm::mat3(this->viewMatrix)) * glm::vec3(1, 0, 0);
+}
+
+glm::vec3   Camera::getCameraTop( void ) const {
+    return glm::transpose(glm::mat3(this->viewMatrix)) * glm::vec3(0, 1, 0);
+}

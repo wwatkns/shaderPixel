@@ -14,73 +14,12 @@ Env::Env( void ) {
             //     glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
             //     glm::vec3(10.0f, 10.0f, 10.0f)
             // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/stone-figure-of-xiuhcoatl-fire-serpent/source/2842228_201410112217/mesh/sculpt.obj",
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(-M_PI/2.0f, 0.0f, -M_PI/2.0f),
-            //     glm::vec3(1.0f, 1.0f, 1.0f)
-            // )
-            // new Model(
-            //     "/Users/wwatkins/Downloads/rameses-iv/source/model/model.obj",
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(-0.75, M_PI+0.25, M_PI/2.0f+0.07),
-            //     glm::vec3(1.0f, 1.0f, 1.0f)
-            // ),
             new Model(
-                "/Users/wwatkins/Downloads/house01/source/House01.obj",
+                "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
                 glm::vec3(0.0f, 0.0f, 0.0f),
                 glm::vec3(0.0f),
-                glm::vec3(1.0f)
+                glm::vec3(0.5f)
             ),
-            new Model(
-                "/Users/wwatkins/Downloads/house02/source/House02.obj",
-                glm::vec3(10.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f),
-                glm::vec3(1.0f)
-            ),
-            new Model(
-                "/Users/wwatkins/Downloads/house03/source/House03.obj",
-                glm::vec3(20.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f),
-                glm::vec3(1.0f)
-            ),
-            new Model(
-                "/Users/wwatkins/Downloads/house04/source/House04.obj",
-                glm::vec3(30.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f),
-                glm::vec3(1.0f)
-            ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/center-structure/source/Center_structure.obj",
-            //     glm::vec3(5.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(1.0f)
-            // ),
-
-            // new Model(
-            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(0.5f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-            //     glm::vec3(5.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(0.5f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-            //     glm::vec3(0.0f, 0.0f, 5.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(0.5f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-            //     glm::vec3(5.0f, 0.0f, 5.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(0.5f)
-            // ),
 
         }};
         this->lights = {{
@@ -101,16 +40,6 @@ Env::Env( void ) {
                 0.032f,
                 eLightType::point
             ),
-            // new Light(
-            //     glm::vec3(-2.0f, 1.0f, 5.0f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f, 1.0f, 0.0f),
-            //     glm::vec3(1.0f, 1.0f, 1.0f),
-            //     1.0f,
-            //     0.09f,
-            //     0.032f,
-            //     eLightType::point
-            // ),
         }};
         this->skybox = new Model(std::vector<std::string>{{
             "./resource/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
@@ -120,6 +49,10 @@ Env::Env( void ) {
             "./resource/ThickCloudsWater/ThickCloudsWaterFront2048.png",
             "./resource/ThickCloudsWater/ThickCloudsWaterBack2048.png",
         }});
+        this->quad = new Model(
+            glm::vec3(0, 13, 0), // 8
+            glm::vec3(5)
+        );
 
         this->setupController();
     } catch (const std::exception& err) {
@@ -163,9 +96,7 @@ void	Env::initGlfwWindow( size_t width, size_t height ) {
 }
 
 void    Env::setupController( void ) {
-    /* set key properties here */
     this->controller->setKeyProperties(GLFW_KEY_P, eKeyMode::toggle, 1, 1000);
-    // this->controller->setKeyProperties(GLFW_KEY_M, eKeyMode::cycle, 1, 300, 3);
 }
 
 void    Env::framebufferSizeCallback( GLFWwindow* window, int width, int height ) {

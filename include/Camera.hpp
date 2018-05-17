@@ -39,6 +39,8 @@ public:
     const glm::mat4&    getViewMatrix( void ) const { return (viewMatrix); };
     const glm::vec3&    getPosition( void ) const { return (position); };
     const glm::vec3&    getCameraFront( void ) const { return (cameraFront); };
+    glm::vec3           getCameraRight( void ) const;
+    glm::vec3           getCameraTop( void ) const;
     const float         getFov( void ) const { return (fov); };
     const float         getAspect( void ) const { return (aspect); };
     const float         getNear( void ) const { return (near); };
