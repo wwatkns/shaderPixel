@@ -75,11 +75,6 @@ Model::Model( const glm::vec3& position, const glm::vec3& scale ) : position(pos
     tMaterial material = (tMaterial){ glm::vec3(0,0,0), glm::vec3(1,1,1), glm::vec3(0,0,0), 0.0f };
     this->meshes.push_back(new Mesh(vertices, indices, textures, material));
     this->update();
-
-    // // last row
-    // Model[3].xyz = vec3(0.0, 0.0, -this->cameranear);
-    // Model[0][0] = 0.2;
-    // Model[1][1] = 0.05;
 }
 
 

@@ -20,12 +20,12 @@
 #include "Camera.hpp"
 #include "Light.hpp"
 
-typedef struct  sShadowDepthMap {
+typedef struct  sDepthMap {
     unsigned int    id;
     unsigned int    fbo;
     size_t          width;
     size_t          height;
-}               tShadowDepthMap;
+}               tDepthMap;
 
 typedef std::unordered_map<std::string, Shader*> tShaderMap;
 
@@ -46,10 +46,12 @@ private:
     Env*            env;
     Camera          camera;
     tShaderMap      shader;
-    tShadowDepthMap shadowDepthMap;
+    tDepthMap       depthMap;       // depth-map for the view fustrum
+    tDepthMap       shadowDepthMap; // depth map for the shadows
     glm::mat4       lightSpaceMat;
     int             useShadows;
 
     void    initShadowDepthMap( const size_t width = 1024, const size_t height = 1024 );
+    void    initDepthMap( void );
 
 };

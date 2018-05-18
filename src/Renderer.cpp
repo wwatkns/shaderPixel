@@ -9,6 +9,7 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping_vert.glsl", "./shader/fragment/shadow_mapping_frag.glsl");
     // this->shader["cloud"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/cloud_frag.glsl");
     this->shader["fractal"] = new Shader("./shader/vertex/fractal_vert.glsl", "./shader/fragment/fractal_frag.glsl");
+    this->initDepthMap();
     this->initShadowDepthMap(4096, 4096);
     this->useShadows = 0;
 }
@@ -94,6 +95,11 @@ void    Renderer::renderMeshes( void ) {
     /* render models */
     for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
         (*it)->render(*this->shader["default"]);
+
+    // NEW: copy the depth buffer to a texture
+    glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
+    glReadBuffer(GL_FRONT); // Ensure we are reading from the back buffer.
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 0, 0, this->depthMap.width, this->depthMap.height, 0);
 }
 
 void    Renderer::renderSkybox( void ) {
@@ -102,7 +108,6 @@ void    Renderer::renderSkybox( void ) {
     this->shader["skybox"]->use();
     this->shader["skybox"]->setMat4UniformValue("view", glm::mat4(glm::mat3(this->camera.getViewMatrix())));
     this->shader["skybox"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
-
     /* render skybox */
     this->env->getSkybox()->render(*this->shader["skybox"]);
     glDepthFunc(GL_LESS);
@@ -110,7 +115,7 @@ void    Renderer::renderSkybox( void ) {
 }
 
 void    Renderer::renderShaders( void ) {
-    glDisable(GL_CULL_FACE); /* disable face-culling as the skybox shows back-faces */
+    glDisable(GL_CULL_FACE);
     this->shader["fractal"]->use();
     this->shader["fractal"]->setMat4UniformValue("view", this->camera.getViewMatrix());
     this->shader["fractal"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
@@ -120,6 +125,10 @@ void    Renderer::renderShaders( void ) {
     this->shader["fractal"]->setVec2UniformValue("uMouse", this->env->getController()->getMousePosition());
     this->shader["fractal"]->setFloatUniformValue("uTime", glfwGetTime());
     this->shader["fractal"]->setVec3UniformValue("uCameraPos", this->camera.getPosition());
+    // NEW
+    glActiveTexture(GL_TEXTURE0);
+    this->shader["default"]->setIntUniformValue("depthBuffer", 0);
+    glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
 
     this->env->quad->render(*this->shader["fractal"]);
     glEnable(GL_CULL_FACE);
@@ -155,4 +164,32 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     this->shader["default"]->setIntUniformValue("texture_normal1", 2);
     this->shader["default"]->setIntUniformValue("texture_specular1", 3);
     this->shader["default"]->setIntUniformValue("texture_emissive1", 4);
+}
+
+void    Renderer::initDepthMap( void ) {
+    glEnable(GL_DEPTH_TEST);
+
+    this->depthMap.width = this->env->getWindow().width;
+    this->depthMap.height = this->env->getWindow().height;
+
+    glGenFramebuffers(1, &this->depthMap.fbo);
+    /* create depth texture */
+    glGenTextures(1, &this->depthMap.id);
+    glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, this->depthMap.width, this->depthMap.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    // attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, this->depthMap.fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthMap.id, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    this->shader["fractal"]->use();
+    this->shader["fractal"]->setIntUniformValue("depthBuffer", 0);
 }

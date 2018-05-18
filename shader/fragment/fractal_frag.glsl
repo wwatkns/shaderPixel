@@ -1,44 +1,87 @@
 #version 400 core
 out vec4 FragColor;
 
+// TODO: implement test with texture depth buffer to intersect geometry with raymarched objects
+
 in vec3 FragPos;   // FragPos is relative to world
 in vec2 TexCoords; // TexCoords is relative to surface
 in mat4 invProj;
 in mat4 invView;
 
+uniform sampler2D depthBuffer;
 uniform vec2 uResolution;
 uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 uCameraPos;
 
 int 	MaximumRaySteps = 100;   // the maximum number of steps the raymarching algorithm can perform
-float 	MaximumDistance = 20;    // the maximum distance for the raymarching ray
+float 	MaximumDistance = 100;    // the maximum distance for the raymarching ray
 float 	MinimumDistance = 0.005; // the minimum distance to render the pixel
 
 int		Iterations = 10;         // the number of iterations for the fractals
 
 /* prototypes */
-float   raymarch( vec3 origin, vec3 dir );
+float   raymarch( vec3 origin, vec3 dir, float s );
 float   tetraHedron( vec3 p );
 float   cube( vec3 p );
 vec3    getNormal( vec3 p );
 
-void main() {
-    vec2 uv = TexCoords.xy;// / uResolution.xy * 3.0;// - 3.0;
+
+void    main() {
+    vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
     vec3 ndc = vec3(uv * 2.0 - 1.0, -0.1); // -1.0
-    ndc.y = -ndc.y;
 
     vec3 origin = uCameraPos;
     /* direction is converted from ndc to world-space */
     vec3 dir = (invProj * vec4(ndc, 1.0)).xyz;
     dir = normalize(vec3(invView * vec4(dir, 0.0)));
 
-    float col = raymarch(origin, dir);
+    float near = 0.1;
+    float far = 100.0;
+
+    /* convert depth buffer value to world depth */
+    float depth = texture(depthBuffer, uv).x * 2.0 - 1.0;
+    depth = 2.0 * near * far / (far + near - depth * (far - near));
+
+    float col = raymarch(origin, dir, depth);
 
     FragColor = vec4(col, col, col, 1.0);
-    if (col == 0.0) FragColor.w = 0.0; // replace black background by transparency
+    if (col == 0.0) FragColor.w = 0.0;
+
+    /* DEBUG: display depth buffer */
+    // float near = 0.1;
+    // float far = 100.0;
+    // float depth = texture(depthBuffer, uv).x;
+    // float c = (2.0 * near) / (far + near - depth * (far - near));
+    // FragColor = vec4(c, c, c, 1.0);
 }
 
+float   raymarch( vec3 origin, vec3 dir, float s ) {
+	float totalDistance = 0.0;
+	int steps;
+    // vec3 n;
+	for (steps = 0; steps < MaximumRaySteps; ++steps) {
+		vec3 p = origin + totalDistance * dir;
+        // n = p; // NEW
+        float distance = tetraHedron(p);
+		totalDistance += distance;
+        if (totalDistance > MaximumDistance || totalDistance > s) return 0.0; // optimization and geometry collision
+		if (distance < MinimumDistance) break;
+	}
+    // n = getNormal(n);
+    // return dot(normalize(vec3(-1, -1, 2)), n);
+	return 1.0 - float(steps) / float(MaximumRaySteps);
+}
+
+vec3    getNormal( vec3 p ) {
+    vec2 eps = vec2(0.001, 0.0);
+    return normalize(vec3(tetraHedron(p + eps.xyy) - tetraHedron(p - eps.xyy),
+                          tetraHedron(p + eps.yxy) - tetraHedron(p - eps.yxy),
+                          tetraHedron(p + eps.yyx) - tetraHedron(p - eps.yyx)));
+}
+
+/*  Distance Estimators
+*/
 float   cube( vec3 p ) {
     vec3 d = abs(p) - vec3(1, 1, 1);
     return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
@@ -55,28 +98,4 @@ float   tetraHedron( vec3 p ) {
        n++;
     }
     return length(p) * pow(2.0, -float(n));
-}
-
-float   raymarch( vec3 origin, vec3 dir ) {
-	float totalDistance = 0.0;
-	int steps;
-    // vec3 n;
-	for (steps = 0; steps < MaximumRaySteps; ++steps) {
-		vec3 p = origin + totalDistance * dir;
-        // n = p; // NEW
-        float distance = tetraHedron(p);
-		totalDistance += distance;
-        if (totalDistance > MaximumDistance) return 0.0; // optimization
-		if (distance < MinimumDistance) break;
-	}
-    // n = getNormal(n);
-    // return dot(normalize(vec3(-1, -1, 2)), n);
-	return 1.0 - float(steps) / float(MaximumRaySteps);
-}
-
-vec3    getNormal( vec3 p ) {
-    vec2 eps = vec2(0.001, 0.0);
-    return normalize(vec3(tetraHedron(p + eps.xyy) - tetraHedron(p - eps.xyy),
-                          tetraHedron(p + eps.yxy) - tetraHedron(p - eps.yxy),
-                          tetraHedron(p + eps.yyx) - tetraHedron(p - eps.yyx)));
 }
