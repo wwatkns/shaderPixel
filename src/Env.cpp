@@ -16,7 +16,7 @@ Env::Env( void ) {
             // ),
             new Model(
                 "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(10.0f, 0.0f, 0.0f),
                 glm::vec3(0.0f),
                 glm::vec3(0.5f)
             ),

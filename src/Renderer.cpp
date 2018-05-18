@@ -4,11 +4,11 @@
 Renderer::Renderer( Env* env ) :
 env(env),
 camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
-    this->shader["default"] = new Shader("./shader/default_vert.glsl", "./shader/default_frag.glsl");
-    this->shader["skybox"]  = new Shader("./shader/skybox_vert.glsl", "./shader/skybox_frag.glsl");
-    this->shader["shadowMap"] = new Shader("./shader/shadow_mapping_vert.glsl", "./shader/shadow_mapping_frag.glsl");
-    // this->shader["cloud"] = new Shader("./shader/default_vert.glsl", "./shader/cloud_frag.glsl");
-    this->shader["fractal"] = new Shader("./shader/fractal_vert.glsl", "./shader/fractal_frag.glsl");
+    this->shader["default"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/default_frag.glsl");
+    this->shader["skybox"]  = new Shader("./shader/vertex/skybox_vert.glsl", "./shader/fragment/skybox_frag.glsl");
+    this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping_vert.glsl", "./shader/fragment/shadow_mapping_frag.glsl");
+    // this->shader["cloud"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/cloud_frag.glsl");
+    this->shader["fractal"] = new Shader("./shader/vertex/fractal_vert.glsl", "./shader/fragment/fractal_frag.glsl");
     this->initShadowDepthMap(4096, 4096);
     this->useShadows = 0;
 }
@@ -114,12 +114,13 @@ void    Renderer::renderShaders( void ) {
     this->shader["fractal"]->use();
     this->shader["fractal"]->setMat4UniformValue("view", this->camera.getViewMatrix());
     this->shader["fractal"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
+    this->shader["fractal"]->setFloatUniformValue("near", this->camera.getNear());
 
     this->shader["fractal"]->setVec2UniformValue("uResolution", glm::vec2(0.5, 0.5));
     this->shader["fractal"]->setVec2UniformValue("uMouse", this->env->getController()->getMousePosition());
     this->shader["fractal"]->setFloatUniformValue("uTime", glfwGetTime());
-    // this->shader["fractal"]->setVec3UniformValue("uCameraPos", this->env->quad->getPosition() - this->camera.getPosition());
-    this->shader["fractal"]->setMat4UniformValue("uView", this->camera.getViewMatrix());
+    this->shader["fractal"]->setVec3UniformValue("uCameraPos", this->camera.getPosition());
+
     this->env->quad->render(*this->shader["fractal"]);
     glEnable(GL_CULL_FACE);
 }
