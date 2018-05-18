@@ -10,11 +10,14 @@ out vec3 FragPos;
 out vec2 TexCoords;
 out mat4 invProj;
 out mat4 invView;
+out float Near;
+out float Far;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform float near;
+uniform float far;
 
 void main() {
     FragPos = vec3(model * vec4(aPos, 1.0));
@@ -22,6 +25,8 @@ void main() {
     TexCoords = aTexCoords;
     invProj = inverse(projection);
     invView = inverse(view);
+    Near = near;
+    Far = far;
 
     /* spherical billboarding */
     // mat4 modelView = view * model;
@@ -32,7 +37,7 @@ void main() {
 
     /* front of camera */
     mat4 Model = model;
-    Model[3].xyz = vec3(0.0, 0.0, -near);
+    Model[3].xyz = vec3(0.0, 0.0, -Near);
     Model[0][0] = 2.0;
     Model[1][1] = 2.0;
     gl_Position = Model * vec4(aPos, 1.0);

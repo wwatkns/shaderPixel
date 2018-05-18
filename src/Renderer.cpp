@@ -96,9 +96,9 @@ void    Renderer::renderMeshes( void ) {
     for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
         (*it)->render(*this->shader["default"]);
 
-    // NEW: copy the depth buffer to a texture
+    /* copy the depth buffer to a texture (used in fractal shader for geometry occlusion of raymarched objects) */
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
-    glReadBuffer(GL_FRONT); // Ensure we are reading from the back buffer.
+    glReadBuffer(GL_FRONT);
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 0, 0, this->depthMap.width, this->depthMap.height, 0);
 }
 
@@ -120,6 +120,7 @@ void    Renderer::renderShaders( void ) {
     this->shader["fractal"]->setMat4UniformValue("view", this->camera.getViewMatrix());
     this->shader["fractal"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
     this->shader["fractal"]->setFloatUniformValue("near", this->camera.getNear());
+    this->shader["fractal"]->setFloatUniformValue("far", this->camera.getFar());
 
     this->shader["fractal"]->setVec2UniformValue("uResolution", glm::vec2(0.5, 0.5));
     this->shader["fractal"]->setVec2UniformValue("uMouse", this->env->getController()->getMousePosition());

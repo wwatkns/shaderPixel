@@ -64,7 +64,7 @@ void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
     );
     /* translation is in the same coordinate system as view (moves in same direction) */
     translate = glm::transpose(this->viewMatrix) * glm::normalize(translate);
-    this->position = this->position - glm::vec3(translate) * 0.5f;
+    this->position = this->position - glm::vec3(translate) * 0.05f;
 }
 
 void    Camera::handleMouse( const tMouse& mouse, float sensitivity ) {
