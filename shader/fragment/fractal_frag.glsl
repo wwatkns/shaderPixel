@@ -18,29 +18,34 @@ struct sMaterial {
 
 in vec3 FragPos;
 in vec2 TexCoords;
-in mat4 invProj;
-in mat4 invView;
 in float Near;
 in float Far;
 
 uniform sampler2D depthBuffer;
 uniform sMaterial material;
 uniform sDirectionalLight directionalLight;
-uniform vec2 uResolution;
+uniform mat4 invProjection;
+uniform mat4 invView;
 uniform vec2 uMouse;
 uniform float uTime;
-uniform vec3 uCameraPos;
+uniform vec3 cameraPos;
 
-int 	MaximumRaySteps = 128;   // the maximum number of steps the raymarching algorithm can perform
-float 	MaximumDistance = 32;    // the maximum distance for the raymarching ray
-float 	MinimumDistance = 0.001; // the minimum distance to render the pixel
+const int 	maxRaySteps = 128;  // the maximum number of steps the raymarching algorithm is allowed to perform
+const float maxDist = 10.0;     // the maximum distance the ray can travel in world-space
+const float minDist = 0.0005;   // the distance from object threshold at which we consider a hit in raymarching
 
-int		Iterations = 9;         // the number of iterations for the fractals
+const int 	maxRayStepsShadow = 32; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
+const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
+const float minDistShadow = 0.005;
+
+int		Iterations = 7;         // the number of iterations for the fractals
 
 /* prototypes */
-vec2    raymarch( vec3 origin, vec3 dir, float s );
-vec3    getNormal( vec3 p );
-vec3    computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec3 m_diffuse, sMaterial material );
+vec2    raymarch( in vec3 ro, in vec3 rd, float s );
+vec3    getNormal( in vec3 p );
+vec3    computeDirectionalLight( sDirectionalLight light, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse );
+float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
+float   ambientOcclusion( in vec3 hit, in vec3 normal );
 float   cube( vec3 p );
 float   torus( vec3 p );
 float   tetraHedron( vec3 p );
@@ -51,16 +56,15 @@ void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
     vec3 ndc = vec3(uv * 2.0 - 1.0, -1.0);
 
-    vec3 origin = uCameraPos;
     // direction is converted from ndc to world-space
-    vec3 dir = (invProj * vec4(ndc, 1.0)).xyz;
-    dir = normalize(vec3(invView * vec4(dir, 0.0)));
+    vec3 dir = (invProjection * vec4(ndc, 1.0)).xyz;
+    dir = normalize((invView * vec4(dir, 0.0)).xyz);
 
     // convert depth buffer value to world depth
     float depth = texture(depthBuffer, uv).x * 2.0 - 1.0;
     depth = 2.0 * Near * Far / (Far + Near - depth * (Far - Near));
 
-    vec2 res = raymarch(origin, dir, depth);
+    vec2 res = raymarch(cameraPos, dir, depth);
 
     // early return if raymarch did not collide
     if (res.x == 0.0) {
@@ -73,9 +77,10 @@ void    main() {
     vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
     vec3 color = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
 
-    vec3 normal = getNormal(origin + res.x * dir);
-    vec3 viewDir = normalize(uCameraPos - FragPos);
-    vec3 light = computeDirectionalLight(directionalLight, normal, viewDir, color, material);
+    vec3 hit = cameraPos + res.x * dir;
+    vec3 normal = getNormal(hit);
+    vec3 viewDir = normalize(cameraPos - hit);
+    vec3 light = computeDirectionalLight(directionalLight, hit, normal, viewDir, color);
 
     FragColor = vec4(light, material.opacity);
 
@@ -87,42 +92,89 @@ void    main() {
     // FragColor = vec4(c, c, c, 1.0);
 }
 
-vec2    raymarch( vec3 origin, vec3 dir, float s ) {
-	float totalDistance = 0.0;
-	int steps;
-	for (steps = 0; steps < MaximumRaySteps; ++steps) {
-		vec3 p = origin + totalDistance * dir;
+vec2    raymarch( in vec3 ro, in vec3 rd, float s ) {
+	float t = 0.0;
+	for (int i = 0; i < maxRaySteps; ++i) {
+		vec3 p = ro + t * rd;
         vec2 res = mandelbulb(p);
         float distance = res.x;
-		totalDistance += distance;
-        /* optimization and geometry occlusion */
-        if (totalDistance > MaximumDistance || totalDistance > s) return vec2(0.0);
-		if (distance < MinimumDistance) return vec2(totalDistance, res.y);
+		t += distance;
+        // optimization and geometry occlusion
+        if (t > maxDist || t > s) return vec2(0.0);
+		if (distance < minDist) return vec2(t, res.y);
 	}
 	return vec2(0.0);
 }
 
-vec3    getNormal( vec3 p ) {
-    vec2 eps = vec2(0.001, 0.0);
+vec3    getNormal( in vec3 p ) {
+    const vec2 eps = vec2(minDist, 0.0);
     return normalize(vec3(mandelbulb(p + eps.xyy).x - mandelbulb(p - eps.xyy).x,
                           mandelbulb(p + eps.yxy).x - mandelbulb(p - eps.yxy).x,
                           mandelbulb(p + eps.yyx).x - mandelbulb(p - eps.yyx).x));
 }
 
-vec3    computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec3 m_diffuse, sMaterial material ) {
-    vec3 lightDir = normalize(light.position);
-    /* diffuse */
-    float diff = max(dot(normal, lightDir), 0.0);
-    /* specular */
-    vec3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+// vec3    computeDirectionalLight( sDirectionalLight light, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse ) {
+//     vec3 lightDir = normalize(light.position);
+//     /* diffuse */
+//     float diff = max(dot(normal, lightDir), 0.0);
+//     /* specular */
+//     vec3 halfwayDir = normalize(lightDir + viewDir);
+//     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+//     /* shadow */
+//     float shadow = softShadow(hit, lightDir, 0.1, 64);
+//     /* compute terms */
+//     vec3 ambient  = light.ambient  * m_diffuse;
+//     vec3 diffuse  = light.diffuse  * diff * m_diffuse * shadow;
+//     vec3 specular = light.specular * spec * material.specular * shadow;
+//     return ambient + diffuse + specular;
+// }
 
+vec3    computeDirectionalLight( sDirectionalLight light, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse ) {
+    vec3 lightDir = normalize(light.position);
     /* compute terms */
-    vec3 ambient  = light.ambient  * m_diffuse;
-    vec3 diffuse  = light.diffuse  * diff * m_diffuse;
-    vec3 specular = light.specular * spec * material.specular;
-    return ambient + diffuse + specular;
+    vec3 res = light.diffuse * max(dot(normal, lightDir), 0.0) * m_diffuse; // diffuse
+    res += light.specular * pow(max(dot(normal, normalize(lightDir + viewDir)), 0.0), material.shininess) * material.specular; // spec
+    res *= softShadow(hit, lightDir, 0.1, 64); // shadow
+    res += light.ambient * m_diffuse; // ambient
+    return res;
+
+    // return vec3( ambientOcclusion(hit, normal) );
 }
+
+float   softShadow( in vec3 ro, in vec3 rd, float mint, float k ) {
+    float t = mint;
+    float res = 1.0;
+	for (int i = 0; i < maxRayStepsShadow; ++i) {
+        float h = mandelbulb(ro + rd * t).x;
+		if (h < minDistShadow)
+            return 0.0;
+        res = min(res, k * h / t);
+		t += h;
+        if (t > maxDistShadow) break; // check geometry occlusion here ?
+	}
+	return res;
+}
+
+float   ambientOcclusion( in vec3 hit, in vec3 normal ) {
+    float t = 0.1;
+    float res = 0.0;
+    for (int i = 0; i < 16; ++i) {
+        float h = mandelbulb(hit + normal * t).x;
+        t += h;
+        if (h < 0.0001)
+            return (0.8-t);
+        if (t > 0.5) return 1.0; // check geometry occlusion here ?
+    }
+    return 1.0;
+}
+
+// float AmbientOcclusion (vec3 point, vec3 normal, float stepDistance, float samples) {
+//     float occlusion; int tempMaterial; // Needed by the DistanceField function
+//     for (occlusion = 1.0 ; samples > 0.0 ; samples--) {
+//         occlusion -= (samples * stepDistance - (DistanceField( point + normal * samples * stepDistance, tempMaterial))) / pow(2.0, samples);
+//     }
+//     return occlusion;
+// }
 
 /*  Distance Estimators
 */
@@ -151,7 +203,7 @@ float   tetraHedron( vec3 p ) {
 }
 
 vec2   mandelbulb( vec3 p ) {
-    float power = 4.0;
+    float power = 8.0;
 	vec3 z = p;
 	float dr = 1.0;
 	float r, theta, phi;
@@ -160,8 +212,8 @@ vec2   mandelbulb( vec3 p ) {
 		r = length(z);
 		if (r > 2.0) break;
 		// convert to polar coordinates
-		theta = asin(z.z / r) + uTime * 0.1;
-		phi = atan(z.y, z.x);
+		theta = asin(z.z / r);// + uTime * 0.1;
+		phi = atan(z.y, z.x);// + uTime * 0.1;
 		dr = pow(r, power - 1.0) * power * dr + 1.0;
 		// scale and rotate the point
 		r = pow(r, power);

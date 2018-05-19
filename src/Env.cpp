@@ -23,7 +23,7 @@ Env::Env( void ) {
         // }};
         this->raymarchedObjects = {{
             new RaymarchedObject(
-                glm::vec3(10.0, 0, 0),
+                glm::vec3(0.0),
                 glm::vec3(0.0),
                 glm::vec3(1.0),
                 (tMaterial){

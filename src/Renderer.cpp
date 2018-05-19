@@ -124,17 +124,16 @@ void    Renderer::renderSkybox( void ) {
 void    Renderer::renderShaders( void ) {
     glDisable(GL_CULL_FACE);
     this->shader["fractal"]->use();
-    this->shader["fractal"]->setMat4UniformValue("view", this->camera.getViewMatrix());
-    this->shader["fractal"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
+    this->shader["fractal"]->setMat4UniformValue("invProjection", this->camera.getInvProjectionMatrix());
+    this->shader["fractal"]->setMat4UniformValue("invView", this->camera.getInvViewMatrix());
     this->shader["fractal"]->setFloatUniformValue("near", this->camera.getNear());
     this->shader["fractal"]->setFloatUniformValue("far", this->camera.getFar());
+    this->shader["fractal"]->setVec3UniformValue("cameraPos", this->camera.getPosition());
 
-    this->shader["fractal"]->setVec2UniformValue("uResolution", glm::vec2(0.5, 0.5));
     this->shader["fractal"]->setVec2UniformValue("uMouse", this->env->getController()->getMousePosition());
     this->shader["fractal"]->setFloatUniformValue("uTime", glfwGetTime());
-    this->shader["fractal"]->setVec3UniformValue("uCameraPos", this->camera.getPosition());
 
-    // NEW
+    /* geometry depth-buffer */
     glActiveTexture(GL_TEXTURE0);
     this->shader["fractal"]->setIntUniformValue("depthBuffer", 0); // `default` was the value before ????
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);

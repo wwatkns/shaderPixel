@@ -3,9 +3,11 @@
 
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
+    this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
     this->position = glm::vec3(0.0f, 0.0f, 2.0f);
     this->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0.0f, 1.0f, 0.0f));
+    this->invViewMatrix = glm::inverse(this->viewMatrix);
     this->pitch = 0;
     this->yaw = 0;
 }
@@ -32,27 +34,32 @@ Camera::~Camera( void ) {
 void    Camera::setFov( float fov ) {
     this->fov = fov;
     this->projectionMatrix = glm::perspective(glm::radians(this->fov), this->aspect, this->near, this->far);
+    this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
 }
 
 void    Camera::setAspect( float aspect ) {
     this->aspect = aspect;
     this->projectionMatrix = glm::perspective(glm::radians(this->fov), this->aspect, this->near, this->far);
+    this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
 }
 
 void    Camera::setNear( float near ) {
     this->near = near;
     this->projectionMatrix = glm::perspective(glm::radians(this->fov), this->aspect, this->near, this->far);
+    this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
 }
 
 void    Camera::setFar( float far ) {
     this->far = far;
     this->projectionMatrix = glm::perspective(glm::radians(this->fov), this->aspect, this->near, this->far);
+    this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
 }
 
 void    Camera::handleInputs( const std::array<tKey, N_KEY>& keys, const tMouse& mouse ) {
     this->handleKeys(keys);
     this->handleMouse(mouse);
     this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0, 1, 0));
+    this->invViewMatrix = glm::inverse(this->viewMatrix);
 }
 
 void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
