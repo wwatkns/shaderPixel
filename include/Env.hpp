@@ -12,6 +12,7 @@
 #include "Exception.hpp"
 #include "Controller.hpp"
 #include "Model.hpp"
+#include "RaymarchedObject.hpp"
 #include "Light.hpp"
 
 typedef struct  s_window {
@@ -29,11 +30,12 @@ public:
     const t_window&         getWindow( void ) const { return (window); };
     Controller*             getController( void ) { return (controller); };
     std::vector<Model*>&    getModels( void ) { return (models); };
+    std::vector<RaymarchedObject*>&    getRaymarchedObjects( void ) { return (raymarchedObjects); };
     std::vector<Light*>&    getLights( void ) { return (lights); };
     Model*                  getSkybox( void ) { return (skybox); };
     Light*                  getDirectionalLight( void );
 
-    Model*              quad; // NEW
+    // Model*              quad; // NEW
 
 private:
     t_window            window;
@@ -41,6 +43,7 @@ private:
     std::vector<Model*> models;
     std::vector<Light*> lights;
     Model*              skybox;
+    std::vector<RaymarchedObject*> raymarchedObjects;
 
     void        initGlfwEnvironment( const std::string& glVersion = "4.0" );
     void        initGlfwWindow( size_t width, size_t height );

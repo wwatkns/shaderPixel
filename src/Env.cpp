@@ -3,24 +3,37 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
-        this->initGlfwWindow(1920, 1080);
+        this->initGlfwWindow(1280, 720);
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
-        this->models = {{
-            // new Model(
-            //     "/Users/wwatkins/Downloads/workshop/source/model.obj",
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
-            //     glm::vec3(10.0f, 10.0f, 10.0f)
-            // ),
-            new Model(
-                "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-                glm::vec3(10.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f),
-                glm::vec3(0.5f)
-            ),
-
+        // this->models = {{
+        //     // new Model(
+        //     //     "/Users/wwatkins/Downloads/workshop/source/model.obj",
+        //     //     glm::vec3(0.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
+        //     //     glm::vec3(10.0f, 10.0f, 10.0f)
+        //     // ),
+        //     // new Model(
+        //     //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f),
+        //     //     glm::vec3(0.5f)
+        //     // ),
+        // }};
+        this->raymarchedObjects = {{
+            new RaymarchedObject(
+                glm::vec3(10.0, 0, 0),
+                glm::vec3(0.0),
+                glm::vec3(1.0),
+                (tMaterial){
+                    glm::vec3(0.0),
+                    glm::vec3(0.0),
+                    glm::vec3(0.35, 0.35, 0.35),
+                    82.0,
+                    1.0
+                }
+            )
         }};
         this->lights = {{
             new Light(
@@ -49,10 +62,6 @@ Env::Env( void ) {
             "./resource/ThickCloudsWater/ThickCloudsWaterFront2048.png",
             "./resource/ThickCloudsWater/ThickCloudsWaterBack2048.png",
         }});
-        this->quad = new Model(
-            glm::vec3(0, 13, 0), // 8
-            glm::vec3(5)
-        );
 
         this->setupController();
     } catch (const std::exception& err) {
@@ -63,6 +72,8 @@ Env::Env( void ) {
 Env::~Env( void ) {
     for (size_t i = 0; i < this->models.size(); ++i)
         delete this->models[i];
+    for (size_t i = 0; i < this->raymarchedObjects.size(); ++i)
+        delete this->raymarchedObjects[i];
     for (size_t i = 0; i < this->lights.size(); ++i)
         delete this->lights[i];
     delete this->skybox;
@@ -91,8 +102,8 @@ void	Env::initGlfwWindow( size_t width, size_t height ) {
 	glfwMakeContextCurrent(this->window.ptr);
 	glfwSetFramebufferSizeCallback(this->window.ptr, this->framebufferSizeCallback);
 	glfwSetInputMode(this->window.ptr, GLFW_STICKY_KEYS, 1);
-    this->window.width = width;
-    this->window.height = height;
+    // get the size of the framebuffer
+    glfwGetFramebufferSize(this->window.ptr, &this->window.width, &this->window.height);
 }
 
 void    Env::setupController( void ) {

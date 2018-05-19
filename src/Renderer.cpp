@@ -59,9 +59,10 @@ void    Renderer::updateShadowDepthMap( void ) {
         glBindFramebuffer(GL_FRAMEBUFFER, this->shadowDepthMap.fbo);
         glClear(GL_DEPTH_BUFFER_BIT);
 
-        /* render meshes on shadowMap shader */
-        for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
-            (*it)->render(*this->shader["shadowMap"]);
+        if (this->env->getModels().size() != 0)
+            /* render meshes on shadowMap shader */
+            for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
+                (*it)->render(*this->shader["shadowMap"]);
 
         /* reset viewport and framebuffer*/
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -75,9 +76,14 @@ void    Renderer::renderLights( void ) {
     this->shader["default"]->use();
     this->shader["default"]->setIntUniformValue("nPointLights", Light::pointLightCount);
 
-    /* render lights */
+    /* render lights for meshes */
     for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
         (*it)->render(*this->shader["default"]);
+
+    /* render lights for fractals */
+    this->shader["fractal"]->use();
+    for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
+        (*it)->render(*this->shader["fractal"]);
 }
 
 void    Renderer::renderMeshes( void ) {
@@ -92,9 +98,10 @@ void    Renderer::renderMeshes( void ) {
     this->shader["default"]->setIntUniformValue("state.use_shadows", this->useShadows);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
 
-    /* render models */
-    for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
-        (*it)->render(*this->shader["default"]);
+    if (this->env->getModels().size() != 0)
+        /* render models */
+        for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
+            (*it)->render(*this->shader["default"]);
 
     /* copy the depth buffer to a texture (used in fractal shader for geometry occlusion of raymarched objects) */
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
@@ -126,12 +133,15 @@ void    Renderer::renderShaders( void ) {
     this->shader["fractal"]->setVec2UniformValue("uMouse", this->env->getController()->getMousePosition());
     this->shader["fractal"]->setFloatUniformValue("uTime", glfwGetTime());
     this->shader["fractal"]->setVec3UniformValue("uCameraPos", this->camera.getPosition());
+
     // NEW
     glActiveTexture(GL_TEXTURE0);
-    this->shader["default"]->setIntUniformValue("depthBuffer", 0);
+    this->shader["fractal"]->setIntUniformValue("depthBuffer", 0); // `default` was the value before ????
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
 
-    this->env->quad->render(*this->shader["fractal"]);
+    for (auto it = this->env->getRaymarchedObjects().begin(); it != this->env->getRaymarchedObjects().end(); it++)
+        (*it)->render(*this->shader["fractal"]);
+
     glEnable(GL_CULL_FACE);
 }
 

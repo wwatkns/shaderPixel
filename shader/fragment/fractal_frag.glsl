@@ -1,6 +1,21 @@
 #version 400 core
 out vec4 FragColor;
 
+struct sDirectionalLight {
+    vec3 position;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+struct sMaterial {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+    float opacity;
+};
+
 in vec3 FragPos;
 in vec2 TexCoords;
 in mat4 invProj;
@@ -9,6 +24,8 @@ in float Near;
 in float Far;
 
 uniform sampler2D depthBuffer;
+uniform sMaterial material;
+uniform sDirectionalLight directionalLight;
 uniform vec2 uResolution;
 uniform vec2 uMouse;
 uniform float uTime;
@@ -18,12 +35,12 @@ int 	MaximumRaySteps = 128;   // the maximum number of steps the raymarching alg
 float 	MaximumDistance = 32;    // the maximum distance for the raymarching ray
 float 	MinimumDistance = 0.001; // the minimum distance to render the pixel
 
-int		Iterations = 12;         // the number of iterations for the fractals
+int		Iterations = 9;         // the number of iterations for the fractals
 
 /* prototypes */
 vec2    raymarch( vec3 origin, vec3 dir, float s );
 vec3    getNormal( vec3 p );
-vec3    computeDirectionalLight( vec3 normal, vec3 viewDir, vec3 m_diffuse );
+vec3    computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec3 m_diffuse, sMaterial material );
 float   cube( vec3 p );
 float   torus( vec3 p );
 float   tetraHedron( vec3 p );
@@ -32,7 +49,7 @@ vec2    mandelbulb( vec3 p );
 
 void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
-    vec3 ndc = vec3(uv * 2.0 - 1.0, -0.1);
+    vec3 ndc = vec3(uv * 2.0 - 1.0, -1.0);
 
     vec3 origin = uCameraPos;
     // direction is converted from ndc to world-space
@@ -45,17 +62,22 @@ void    main() {
 
     vec2 res = raymarch(origin, dir, depth);
 
+    // early return if raymarch did not collide
+    if (res.x == 0.0) {
+        FragColor = vec4(0.0);
+        return ;
+    }
+
     // colorize
     res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
     vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
-    vec3 color = vec3(0.9, 0.8, 0.6) * 0.2 * tc0;
+    vec3 color = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
 
     vec3 normal = getNormal(origin + res.x * dir);
     vec3 viewDir = normalize(uCameraPos - FragPos);
-    vec3 light = computeDirectionalLight(normal, viewDir, color);
+    vec3 light = computeDirectionalLight(directionalLight, normal, viewDir, color, material);
 
-    FragColor = vec4(light, 1.0);
-    if (res.x == 0.0) FragColor.w = 0.0;
+    FragColor = vec4(light, material.opacity);
 
     /* DEBUG: display depth buffer */
     // float near = 0.1;
@@ -80,7 +102,6 @@ vec2    raymarch( vec3 origin, vec3 dir, float s ) {
 	return vec2(0.0);
 }
 
-
 vec3    getNormal( vec3 p ) {
     vec2 eps = vec2(0.001, 0.0);
     return normalize(vec3(mandelbulb(p + eps.xyy).x - mandelbulb(p - eps.xyy).x,
@@ -88,26 +109,18 @@ vec3    getNormal( vec3 p ) {
                           mandelbulb(p + eps.yyx).x - mandelbulb(p - eps.yyx).x));
 }
 
-vec3    computeDirectionalLight( vec3 normal, vec3 viewDir, vec3 m_diffuse ) {
-    vec3 l_ambient = vec3(0.77, 0.88, 1.0) * 0.05;
-    vec3 l_diffuse = vec3(1.0, 0.964, 0.77);
-    vec3 l_specular = vec3(1.0, 1.0, 1.0);
-
-    m_diffuse *= 8.0;
-    vec3 m_specular = vec3(0.35, 0.35, 0.35);
-    float m_shininess = 100.0;
-
-    vec3 lightDir = normalize(vec3(10, 10, 6));
+vec3    computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec3 m_diffuse, sMaterial material ) {
+    vec3 lightDir = normalize(light.position);
     /* diffuse */
     float diff = max(dot(normal, lightDir), 0.0);
     /* specular */
     vec3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), m_shininess);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
 
     /* compute terms */
-    vec3 ambient  = l_ambient  * m_diffuse;
-    vec3 diffuse  = l_diffuse * diff * m_diffuse;
-    vec3 specular = l_specular * spec * m_specular;
+    vec3 ambient  = light.ambient  * m_diffuse;
+    vec3 diffuse  = light.diffuse  * diff * m_diffuse;
+    vec3 specular = light.specular * spec * material.specular;
     return ambient + diffuse + specular;
 }
 
