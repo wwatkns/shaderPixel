@@ -16,7 +16,7 @@ INC_PATH = ./include/ \
 		   $(LIB_PATH)$(LIB_GLM_NAME)/ \
 		   $(LIB_PATH)$(LIB_ASSIMP_NAME)/include/
 
-CC_FLGS = -std=c++11 #-Werror -Wextra -Wall
+CC_FLGS = -std=c++11 -Ofast #-Werror -Wextra -Wall
 CC_LIBS = -lassimp -lglfw3 -framework AppKit -framework OpenGL -framework IOKit -framework CoreVideo
 
 SRC_NAME = main.cpp RaymarchedObject.cpp Light.cpp Mesh.cpp Model.cpp Camera.cpp Controller.cpp Env.cpp Renderer.cpp Shader.cpp utils.cpp

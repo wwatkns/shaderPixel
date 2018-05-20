@@ -225,58 +225,6 @@ vec2   mandelbulb( vec3 p ) {
 	return vec2(0.5 * log(r) * r / dr, t0);
 }
 
-vec2   mandelbox( vec3 p ) {
-    const float fold_limit = 1;
-    const float fold_value = 2;
-    const float min_radius = 0.5;
-    const float fixed_radius = 1.0;// - (1.0+sin(uTime))*0.1;
-    const float scale = 2.0;
-
-    const float minRadius2 = min_radius*min_radius;
-    const float fixedRadius2 = fixed_radius*fixed_radius;
-
-    vec3 z = p;
-    float r2;
-    float dr = scale;
-    float t0 = 1.0;
-
-    for (int i = 0; i < 12; i++) {
-        if (z.x > fold_limit) z.x = fold_value - z.x; else if (z.x < -fold_limit) z.x = -fold_value - z.x;
-        if (z.y > fold_limit) z.y = fold_value - z.y; else if (z.y < -fold_limit) z.y = -fold_value - z.y;
-        if (z.z > fold_limit) z.z = fold_value - z.z; else if (z.z < -fold_limit) z.z = -fold_value - z.z;
-
-        r2 = z.x*z.x + z.y*z.y + z.z*z.z;
-        if (r2 < minRadius2) {
-            z = z * fixedRadius2 / minRadius2;
-            dr = dr * fixedRadius2 / minRadius2;
-        }
-        else if (r2 < fixedRadius2) {
-            z = z * fixedRadius2 / r2;
-            dr = dr * fixedRadius2 / r2;
-        }
-
-        z = z * scale + p;
-        dr = -dr * scale + 1.0;
-        t0 = min(t0, r2);
-    }
-	return vec2(length(z) / dr, t0);
-	// return vec2((length(z) - abs(scale-1.0)) / abs(dr), t0);
-}
-
-// // precomputed somewhere
-// vec4 scalevec = vec4(SCALE, SCALE, SCALE, abs(SCALE)) / MR2;
-// float C1 = abs(SCALE-1.0), C2 = pow(abs(SCALE), float(1-iters));
-//
-// // distance estimate
-// vec4 p = vec4(position.xyz, 1.0), p0 = vec4(position.xyz, 1.0);  // p.w is knighty's DEfactor
-// for (int i=0; i<iters; i++) {
-//   p.xyz = clamp(p.xyz, -1.0, 1.0) * 2.0 - p.xyz;  // box fold: min3, max3, mad3
-//   float r2 = dot(p.xyz, p.xyz);  // dp3
-//   p.xyzw *= clamp(max(MR2/r2, MR2), 0.0, 1.0);  // sphere fold: div1, max1.sat, mul4
-//   p.xyzw = p*scalevec + p0;  // mad4
-// }
-// return (length(p.xyz) - C1) / p.w - C2;
-
 // vec2   mandelbox( vec3 p ) {
 //     const float fold_limit = 1;
 //     const float fold_value = 2;
@@ -287,18 +235,54 @@ vec2   mandelbox( vec3 p ) {
 //     const float minRadius2 = min_radius*min_radius;
 //     const float fixedRadius2 = fixed_radius*fixed_radius;
 //
-//     const vec4 scalevec = vec4(scale, scale, scale, abs(scale)) / minRadius2;
-//     const float C1 = abs(scale - 1.0), C2 = pow(abs(scale), float(1 - 12));
-//
-//     vec4 z = vec4(p.xyz, 1.0), p0 = vec4(p.xyz, 1.0);
-//
-//     // vec3 z = p;
-//     // float r2;
-//     // float dr = scale;
-//     // float t0 = 1.0;
+//     vec3 z = p;
+//     float r2;
+//     float dr = scale;
+//     float t0 = 1.0;
 //
 //     for (int i = 0; i < 12; i++) {
+//         if (z.x > fold_limit) z.x = fold_value - z.x; else if (z.x < -fold_limit) z.x = -fold_value - z.x;
+//         if (z.y > fold_limit) z.y = fold_value - z.y; else if (z.y < -fold_limit) z.y = -fold_value - z.y;
+//         if (z.z > fold_limit) z.z = fold_value - z.z; else if (z.z < -fold_limit) z.z = -fold_value - z.z;
 //
+//         r2 = z.x*z.x + z.y*z.y + z.z*z.z;
+//         if (r2 < minRadius2) {
+//             z = z * fixedRadius2 / minRadius2;
+//             dr = dr * fixedRadius2 / minRadius2;
+//         }
+//         else if (r2 < fixedRadius2) {
+//             z = z * fixedRadius2 / r2;
+//             dr = dr * fixedRadius2 / r2;
+//         }
+//
+//         z = z * scale + p;
+//         dr = -dr * scale + 1.0;
+//         t0 = min(t0, r2);
 //     }
-// 	return vec2((length(z.xyz) - C1) / z.w - C2, t0);
+// 	return vec2(length(z) / dr, t0);
+// 	// return vec2((length(z) - abs(scale-1.0)) / abs(dr), t0);
 // }
+
+
+vec2   mandelbox( vec3 p ) { // optimized version
+    const float fold_limit = 1;
+    const float fold_value = 2;
+    const float min_radius = 0.5;
+    const float scale = 2.0;
+
+    const float minRadius2 = min_radius*min_radius;
+
+    const vec4 scalevec = vec4(scale, scale, scale, abs(scale)) / minRadius2;
+    const float C1 = abs(scale - 1.0), C2 = pow(abs(scale), float(1 - 12));
+
+    vec4 z = vec4(p.xyz, 1.0), p0 = vec4(p.xyz, 1.0);
+    float t0 = 1.0;
+    for (int i = 0; i < 12; i++) {
+        z.xyz = clamp(z.xyz, -1.0, 1.0) * 2.0 - z.xyz;  // box fold: min3, max3, mad3
+        float r2 = dot(z.xyz, z.xyz);  // dp3
+        z.xyzw *= clamp(max(minRadius2 / r2, minRadius2), 0.0, 1.0);  // sphere fold: div1, max1.sat, mul4
+        z.xyzw = z * scalevec + p0;  // mad4
+        t0 = min(t0, r2);
+    }
+	return vec2((length(z.xyz) - C1) / z.w - C2, t0);
+}
