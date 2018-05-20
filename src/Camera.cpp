@@ -4,7 +4,8 @@
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
     this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
-    this->position = glm::vec3(0.0f, 0.0f, 2.0f);
+    this->position = glm::vec3(0.0f, 6.2f, 6.2f);
+    // this->position = glm::vec3(0.0f, 0.0f, 2.0);
     this->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0.0f, 1.0f, 0.0f));
     this->invViewMatrix = glm::inverse(this->viewMatrix);
@@ -73,7 +74,7 @@ void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
     );
     /* translation is in the same coordinate system as view (moves in same direction) */
     translate = glm::transpose(this->viewMatrix) * glm::normalize(translate);
-    this->position = this->position - glm::vec3(translate) * this->getElapsedMilliseconds(this->last).count() * 0.001f;
+    this->position = this->position - glm::vec3(translate) * this->getElapsedMilliseconds(this->last).count() * 0.001f * 0.25;
 }
 
 void    Camera::handleMouse( const tMouse& mouse, float sensitivity ) {

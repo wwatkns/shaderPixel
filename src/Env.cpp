@@ -3,7 +3,7 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
-        this->initGlfwWindow(1280, 720);
+        this->initGlfwWindow(720, 480);
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);

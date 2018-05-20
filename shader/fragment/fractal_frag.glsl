@@ -30,9 +30,11 @@ uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 cameraPos;
 
-const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
+// const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
 const float maxDist = 5.0;          // the maximum distance the ray can travel in world-space
-const float minDist = 0.0005;       // the distance from object threshold at which we consider a hit in raymarching
+// const float minDist = 0.0005;       // the distance from object threshold at which we consider a hit in raymarching
+const int 	maxRaySteps = 150;      // the maximum number of steps the raymarching algorithm is allowed to perform
+const float minDist = 0.001;       // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 32; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
@@ -47,10 +49,12 @@ vec3    getNormal( in vec3 p );
 vec3    computeDirectionalLight( sDirectionalLight light, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse );
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
 float   ambientOcclusion( in vec3 hit, in vec3 normal );
+vec2    map( in vec3 p );
 float   cube( vec3 p );
 float   torus( vec3 p );
 float   tetraHedron( vec3 p );
 vec2    mandelbulb( vec3 p );
+vec2    mandelbox( vec3 p );
 
 
 void    main() {
@@ -66,35 +70,47 @@ void    main() {
     depth = 2.0 * Near * Far / (Far + Near - depth * (Far - Near));
 
     // visualize iteration count
-	// float t = 0.0;
-	// for (int i = 0; i < maxRaySteps; i++) {
-    //     vec2 res = mandelbulb(cameraPos + dir * t);
-	// 	t += res.x;
-    //     float it = i / float(maxRaySteps);
-    //     // optimization and geometry occlusion
-    //     if (t > maxDist || t > depth) { FragColor = vec4(it, 0, 0.03, 1.0); break; }
-	// 	if (res.x < minDist) { FragColor = vec4(it, 0, 0.03, 1.0); break; }
-	// }
-	// return ;
+	float t = 0.0;
+    int i;
+	for (i = 0; i < maxRaySteps; i++) {
+        vec2 res = mandelbox(cameraPos + dir * t);
+		t += res.x;
+        // optimization and geometry occlusion
+        if (res.x < minDist || t > maxDist || t > depth) break;
+	}
+    // FragColor = vec4(i / float(maxRaySteps), 0, 0.03, 1.0);
+    float fog = t * 0.5;
+    float it = i / float(maxRaySteps);
+    vec3 color = fog * fog * vec3(0.9, 0.517, 0.345) + it * vec3(0.231, it * 0.592, 0.376);
 
-    vec2 res = raymarch(cameraPos, dir, depth);
+    FragColor = vec4(color, 1.0);
+	return ;
+
+    // vec2 res = raymarch(cameraPos, dir, depth);
 
     // early return if raymarch did not collide
-    if (res.x == 0.0) {
-        FragColor = vec4(0.0);
-        return ;
-    }
-    // colorize
-    res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
-    vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
-    vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
+    // if (res.x == 0.0) {
+    //     FragColor = vec4(0.0);
+    //     return ;
+    // }
+    // colorize mandelbrot
+    // res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
+    // vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
+    // vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
 
-    vec3 hit = cameraPos + dir * res.x;
-    vec3 normal = getNormal(hit);
-    vec3 viewDir = normalize(cameraPos - hit);
-    vec3 color = computeDirectionalLight(directionalLight, hit, normal, viewDir, diffuse);
+    // colorize mandelbox
+    // res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
+    // vec3 tc0 = 0.5 + 0.5 * sin(-1.0 + 0.8 * res.y + vec3(0.4, 0.2, 1.0));
+    // vec3 diffuse = vec3(0.6, 0.8, 0.9) * 0.2 * tc0 * 8.0;
+    //
+    // vec3 hit = cameraPos + dir * res.x;
+    // vec3 normal = getNormal(hit);
+    // vec3 viewDir = normalize(cameraPos - hit);
+    // vec3 color = computeDirectionalLight(directionalLight, hit, normal, viewDir, diffuse);
 
-    FragColor = vec4(color, material.opacity);
+    // vec3 color = vec3(res.x);
+
+    // FragColor = vec4(color, material.opacity);
 
     /* DEBUG: display depth buffer */
     // float near = 0.1;
@@ -104,10 +120,14 @@ void    main() {
     // FragColor = vec4(c, c, c, 1.0);
 }
 
+vec2    map( in vec3 p ) {
+    return mandelbox(p);
+}
+
 vec2    raymarch( in vec3 ro, in vec3 rd, float s ) {
 	float t = 0.0;
 	for (int i = 0; i < maxRaySteps; i++) {
-        vec2 res = mandelbulb(ro + rd * t);
+        vec2 res = map(ro + rd * t);
 		t += res.x;
         // optimization and geometry occlusion
         if (t > maxDist || t > s) return vec2(0.0);
@@ -117,10 +137,10 @@ vec2    raymarch( in vec3 ro, in vec3 rd, float s ) {
 }
 
 vec3    getNormal( in vec3 p ) {
-    const vec2 eps = vec2(minDist, 0.0);
-    return normalize(vec3(mandelbulb(p + eps.xyy).x - mandelbulb(p - eps.xyy).x,
-                          mandelbulb(p + eps.yxy).x - mandelbulb(p - eps.yxy).x,
-                          mandelbulb(p + eps.yyx).x - mandelbulb(p - eps.yyx).x));
+    const vec2 eps = vec2(0.001, 0.0);
+    return normalize(vec3(map(p + eps.xyy).x - map(p - eps.xyy).x,
+                          map(p + eps.yxy).x - map(p - eps.yxy).x,
+                          map(p + eps.yyx).x - map(p - eps.yyx).x));
 }
 
 vec3    computeDirectionalLight( sDirectionalLight light, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse ) {
@@ -143,7 +163,7 @@ float   softShadow( in vec3 ro, in vec3 rd, float mint, float k ) {
     float t = mint;
     float res = 1.0;
 	for (int i = 0; i < maxRayStepsShadow; ++i) {
-        float h = mandelbulb(ro + rd * t).x;
+        float h = map(ro + rd * t).x;
 		if (h < minDistShadow)
             return 0.0;
         res = min(res, k * h / t);
@@ -189,8 +209,8 @@ vec2   mandelbulb( vec3 p ) {
         r = length(z);
         if (r > 2.0) break;
         // convert to polar coordinates
-        theta = asin(z.z / r);// + uTime * 0.1;
-        phi = atan(z.y, z.x);// + uTime * 0.1;
+        theta = asin(z.z / r);// + uTime * 0.01;
+        phi = atan(z.y, z.x);// + uTime * 0.005;
         float rpow = pow(r, power - 1.0);
         dr = rpow * power * dr + 1.0;
         // scale and rotate the point
@@ -204,3 +224,81 @@ vec2   mandelbulb( vec3 p ) {
 	}
 	return vec2(0.5 * log(r) * r / dr, t0);
 }
+
+vec2   mandelbox( vec3 p ) {
+    const float fold_limit = 1;
+    const float fold_value = 2;
+    const float min_radius = 0.5;
+    const float fixed_radius = 1.0;// - (1.0+sin(uTime))*0.1;
+    const float scale = 2.0;
+
+    const float minRadius2 = min_radius*min_radius;
+    const float fixedRadius2 = fixed_radius*fixed_radius;
+
+    vec3 z = p;
+    float r2;
+    float dr = scale;
+    float t0 = 1.0;
+
+    for (int i = 0; i < 12; i++) {
+        if (z.x > fold_limit) z.x = fold_value - z.x; else if (z.x < -fold_limit) z.x = -fold_value - z.x;
+        if (z.y > fold_limit) z.y = fold_value - z.y; else if (z.y < -fold_limit) z.y = -fold_value - z.y;
+        if (z.z > fold_limit) z.z = fold_value - z.z; else if (z.z < -fold_limit) z.z = -fold_value - z.z;
+
+        r2 = z.x*z.x + z.y*z.y + z.z*z.z;
+        if (r2 < minRadius2) {
+            z = z * fixedRadius2 / minRadius2;
+            dr = dr * fixedRadius2 / minRadius2;
+        }
+        else if (r2 < fixedRadius2) {
+            z = z * fixedRadius2 / r2;
+            dr = dr * fixedRadius2 / r2;
+        }
+
+        z = z * scale + p;
+        dr = -dr * scale + 1.0;
+        t0 = min(t0, r2);
+    }
+	return vec2(length(z) / dr, t0);
+	// return vec2((length(z) - abs(scale-1.0)) / abs(dr), t0);
+}
+
+// // precomputed somewhere
+// vec4 scalevec = vec4(SCALE, SCALE, SCALE, abs(SCALE)) / MR2;
+// float C1 = abs(SCALE-1.0), C2 = pow(abs(SCALE), float(1-iters));
+//
+// // distance estimate
+// vec4 p = vec4(position.xyz, 1.0), p0 = vec4(position.xyz, 1.0);  // p.w is knighty's DEfactor
+// for (int i=0; i<iters; i++) {
+//   p.xyz = clamp(p.xyz, -1.0, 1.0) * 2.0 - p.xyz;  // box fold: min3, max3, mad3
+//   float r2 = dot(p.xyz, p.xyz);  // dp3
+//   p.xyzw *= clamp(max(MR2/r2, MR2), 0.0, 1.0);  // sphere fold: div1, max1.sat, mul4
+//   p.xyzw = p*scalevec + p0;  // mad4
+// }
+// return (length(p.xyz) - C1) / p.w - C2;
+
+// vec2   mandelbox( vec3 p ) {
+//     const float fold_limit = 1;
+//     const float fold_value = 2;
+//     const float min_radius = 0.5;
+//     const float fixed_radius = 1.0;// - (1.0+sin(uTime))*0.1;
+//     const float scale = 2.0;
+//
+//     const float minRadius2 = min_radius*min_radius;
+//     const float fixedRadius2 = fixed_radius*fixed_radius;
+//
+//     const vec4 scalevec = vec4(scale, scale, scale, abs(scale)) / minRadius2;
+//     const float C1 = abs(scale - 1.0), C2 = pow(abs(scale), float(1 - 12));
+//
+//     vec4 z = vec4(p.xyz, 1.0), p0 = vec4(p.xyz, 1.0);
+//
+//     // vec3 z = p;
+//     // float r2;
+//     // float dr = scale;
+//     // float t0 = 1.0;
+//
+//     for (int i = 0; i < 12; i++) {
+//
+//     }
+// 	return vec2((length(z.xyz) - C1) / z.w - C2, t0);
+// }
