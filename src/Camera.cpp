@@ -10,6 +10,7 @@ Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect
     this->invViewMatrix = glm::inverse(this->viewMatrix);
     this->pitch = 0;
     this->yaw = 0;
+    this->last = std::chrono::steady_clock::now();
 }
 
 Camera::Camera( const Camera& rhs ) {
@@ -60,6 +61,7 @@ void    Camera::handleInputs( const std::array<tKey, N_KEY>& keys, const tMouse&
     this->handleMouse(mouse);
     this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0, 1, 0));
     this->invViewMatrix = glm::inverse(this->viewMatrix);
+    this->last = std::chrono::steady_clock::now();
 }
 
 void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
@@ -71,7 +73,7 @@ void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
     );
     /* translation is in the same coordinate system as view (moves in same direction) */
     translate = glm::transpose(this->viewMatrix) * glm::normalize(translate);
-    this->position = this->position - glm::vec3(translate) * 0.05f;
+    this->position = this->position - glm::vec3(translate) * this->getElapsedMilliseconds(this->last).count() * 0.001f;
 }
 
 void    Camera::handleMouse( const tMouse& mouse, float sensitivity ) {

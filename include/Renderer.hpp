@@ -28,6 +28,8 @@ typedef struct  sDepthMap {
 }               tDepthMap;
 
 typedef std::unordered_map<std::string, Shader*> tShaderMap;
+typedef std::chrono::duration<double,std::milli> tMilliseconds;
+typedef std::chrono::steady_clock::time_point tTimePoint;
 
 class Renderer {
 
@@ -50,6 +52,8 @@ private:
     tDepthMap       shadowDepthMap; // depth map for the shadows
     glm::mat4       lightSpaceMat;
     int             useShadows;
+
+    tTimePoint      lastTime;
 
     void    initShadowDepthMap( const size_t width = 1024, const size_t height = 1024 );
     void    initDepthMap( void );

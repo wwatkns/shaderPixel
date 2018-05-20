@@ -12,12 +12,14 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->initDepthMap();
     this->initShadowDepthMap(4096, 4096);
     this->useShadows = 0;
+    this->lastTime = std::chrono::steady_clock::now();
 }
 
 Renderer::~Renderer( void ) {
 }
 
 void	Renderer::loop( void ) {
+    static int frames = 0;
     glEnable(GL_DEPTH_TEST); /* z-buffering */
     glEnable(GL_FRAMEBUFFER_SRGB); /* gamma correction */
     // glEnable(GL_MULTISAMPLE); /* multisampling MSAA */
@@ -40,6 +42,16 @@ void	Renderer::loop( void ) {
         this->renderSkybox();
         this->renderShaders();
         glfwSwapBuffers(this->env->getWindow().ptr);
+
+        tTimePoint current = std::chrono::steady_clock::now();
+        frames++;
+        if ((static_cast<tMilliseconds>(current - this->lastTime)).count() > 999) {
+            // float fps = 1000.0 / (static_cast<tMilliseconds>(current - this->lastTime)).count();
+            // std::cout << fps << " fps" << std::endl;
+            std::cout << frames << " fps" << std::endl;
+            this->lastTime = current;
+            frames = 0;
+        }
     }
 }
 

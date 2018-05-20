@@ -60,6 +60,8 @@ private:
     float       near;
     float       far;
 
+    tTimePoint  last;
+
     float       pitch;
     float       yaw;
 

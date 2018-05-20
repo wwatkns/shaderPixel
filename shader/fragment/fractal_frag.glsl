@@ -30,15 +30,16 @@ uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 cameraPos;
 
-const int 	maxRaySteps = 128;  // the maximum number of steps the raymarching algorithm is allowed to perform
-const float maxDist = 10.0;     // the maximum distance the ray can travel in world-space
-const float minDist = 0.0005;   // the distance from object threshold at which we consider a hit in raymarching
+const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
+const float maxDist = 5.0;          // the maximum distance the ray can travel in world-space
+const float minDist = 0.0005;       // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 32; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
-const float minDistShadow = 0.005;
+const float minDistShadow = 0.005;  // the distance from object threshold at which we consider a hit in raymarching for shadows
 
-int		Iterations = 7;         // the number of iterations for the fractals
+const int	maxIterations = 6;      // the number of iterations for the fractals
+
 
 /* prototypes */
 vec2    raymarch( in vec3 ro, in vec3 rd, float s );
@@ -64,6 +65,18 @@ void    main() {
     float depth = texture(depthBuffer, uv).x * 2.0 - 1.0;
     depth = 2.0 * Near * Far / (Far + Near - depth * (Far - Near));
 
+    // visualize iteration count
+	// float t = 0.0;
+	// for (int i = 0; i < maxRaySteps; i++) {
+    //     vec2 res = mandelbulb(cameraPos + dir * t);
+	// 	t += res.x;
+    //     float it = i / float(maxRaySteps);
+    //     // optimization and geometry occlusion
+    //     if (t > maxDist || t > depth) { FragColor = vec4(it, 0, 0.03, 1.0); break; }
+	// 	if (res.x < minDist) { FragColor = vec4(it, 0, 0.03, 1.0); break; }
+	// }
+	// return ;
+
     vec2 res = raymarch(cameraPos, dir, depth);
 
     // early return if raymarch did not collide
@@ -71,18 +84,17 @@ void    main() {
         FragColor = vec4(0.0);
         return ;
     }
-
     // colorize
     res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
     vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
-    vec3 color = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
+    vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
 
-    vec3 hit = cameraPos + res.x * dir;
+    vec3 hit = cameraPos + dir * res.x;
     vec3 normal = getNormal(hit);
     vec3 viewDir = normalize(cameraPos - hit);
-    vec3 light = computeDirectionalLight(directionalLight, hit, normal, viewDir, color);
+    vec3 color = computeDirectionalLight(directionalLight, hit, normal, viewDir, diffuse);
 
-    FragColor = vec4(light, material.opacity);
+    FragColor = vec4(color, material.opacity);
 
     /* DEBUG: display depth buffer */
     // float near = 0.1;
@@ -94,14 +106,12 @@ void    main() {
 
 vec2    raymarch( in vec3 ro, in vec3 rd, float s ) {
 	float t = 0.0;
-	for (int i = 0; i < maxRaySteps; ++i) {
-		vec3 p = ro + t * rd;
-        vec2 res = mandelbulb(p);
-        float distance = res.x;
-		t += distance;
+	for (int i = 0; i < maxRaySteps; i++) {
+        vec2 res = mandelbulb(ro + rd * t);
+		t += res.x;
         // optimization and geometry occlusion
         if (t > maxDist || t > s) return vec2(0.0);
-		if (distance < minDist) return vec2(t, res.y);
+		if (res.x < minDist) return vec2(t, res.y);
 	}
 	return vec2(0.0);
 }
@@ -113,32 +123,20 @@ vec3    getNormal( in vec3 p ) {
                           mandelbulb(p + eps.yyx).x - mandelbulb(p - eps.yyx).x));
 }
 
-// vec3    computeDirectionalLight( sDirectionalLight light, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse ) {
-//     vec3 lightDir = normalize(light.position);
-//     /* diffuse */
-//     float diff = max(dot(normal, lightDir), 0.0);
-//     /* specular */
-//     vec3 halfwayDir = normalize(lightDir + viewDir);
-//     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-//     /* shadow */
-//     float shadow = softShadow(hit, lightDir, 0.1, 64);
-//     /* compute terms */
-//     vec3 ambient  = light.ambient  * m_diffuse;
-//     vec3 diffuse  = light.diffuse  * diff * m_diffuse * shadow;
-//     vec3 specular = light.specular * spec * material.specular * shadow;
-//     return ambient + diffuse + specular;
-// }
-
 vec3    computeDirectionalLight( sDirectionalLight light, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse ) {
     vec3 lightDir = normalize(light.position);
+    /* diffuse */
+    float diff = max(dot(normal, lightDir), 0.0);
+    /* specular */
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+    /* shadow */
+    float shadow = softShadow(hit, lightDir, 0.1, 64);
     /* compute terms */
-    vec3 res = light.diffuse * max(dot(normal, lightDir), 0.0) * m_diffuse; // diffuse
-    res += light.specular * pow(max(dot(normal, normalize(lightDir + viewDir)), 0.0), material.shininess) * material.specular; // spec
-    res *= softShadow(hit, lightDir, 0.1, 64); // shadow
-    res += light.ambient * m_diffuse; // ambient
-    return res;
-
-    // return vec3( ambientOcclusion(hit, normal) );
+    vec3 ambient  = light.ambient  * m_diffuse;
+    vec3 diffuse  = light.diffuse  * diff * m_diffuse * shadow;
+    vec3 specular = light.specular * spec * material.specular * shadow;
+    return ambient + diffuse + specular;
 }
 
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k ) {
@@ -154,27 +152,6 @@ float   softShadow( in vec3 ro, in vec3 rd, float mint, float k ) {
 	}
 	return res;
 }
-
-float   ambientOcclusion( in vec3 hit, in vec3 normal ) {
-    float t = 0.1;
-    float res = 0.0;
-    for (int i = 0; i < 16; ++i) {
-        float h = mandelbulb(hit + normal * t).x;
-        t += h;
-        if (h < 0.0001)
-            return (0.8-t);
-        if (t > 0.5) return 1.0; // check geometry occlusion here ?
-    }
-    return 1.0;
-}
-
-// float AmbientOcclusion (vec3 point, vec3 normal, float stepDistance, float samples) {
-//     float occlusion; int tempMaterial; // Needed by the DistanceField function
-//     for (occlusion = 1.0 ; samples > 0.0 ; samples--) {
-//         occlusion -= (samples * stepDistance - (DistanceField( point + normal * samples * stepDistance, tempMaterial))) / pow(2.0, samples);
-//     }
-//     return occlusion;
-// }
 
 /*  Distance Estimators
 */
@@ -192,7 +169,7 @@ float   cube( vec3 p ) {
 float   tetraHedron( vec3 p ) {
     float r;
     int n = 0;
-    while (n < Iterations) {
+    while (n < maxIterations) {
        if (p.x + p.y < 0.0) p.xy = -p.yx; // fold 1
        if (p.x + p.z < 0.0) p.xz = -p.zx; // fold 2
        if (p.y + p.z < 0.0) p.zy = -p.yz; // fold 3
@@ -203,24 +180,26 @@ float   tetraHedron( vec3 p ) {
 }
 
 vec2   mandelbulb( vec3 p ) {
-    float power = 8.0;
-	vec3 z = p;
-	float dr = 1.0;
-	float r, theta, phi;
+    const float power = 8.0;
+    vec3 z = p;
+    float dr = 1.0;
+    float r, theta, phi;
     float t0 = 1.0;
-	for (int i = 0; i < Iterations ; ++i) {
-		r = length(z);
-		if (r > 2.0) break;
-		// convert to polar coordinates
-		theta = asin(z.z / r);// + uTime * 0.1;
-		phi = atan(z.y, z.x);// + uTime * 0.1;
-		dr = pow(r, power - 1.0) * power * dr + 1.0;
-		// scale and rotate the point
-		r = pow(r, power);
-		theta = theta * power;
-		phi = phi * power;
-		// convert back to cartesian coordinates
-		z = r * vec3(cos(theta) * cos(phi), sin(phi) * cos(theta), sin(theta)) + p;
+    for (int i = 0; i < maxIterations; i++) {
+        r = length(z);
+        if (r > 2.0) break;
+        // convert to polar coordinates
+        theta = asin(z.z / r);// + uTime * 0.1;
+        phi = atan(z.y, z.x);// + uTime * 0.1;
+        float rpow = pow(r, power - 1.0);
+        dr = rpow * power * dr + 1.0;
+        // scale and rotate the point
+        r = rpow * r;
+        theta = theta * power;
+        phi = phi * power;
+        // convert back to cartesian coordinates
+        float cosTheta = cos(theta);
+        z = r * vec3(cosTheta * cos(phi), sin(phi) * cosTheta, sin(theta)) + p;
         t0 = min(t0, r);
 	}
 	return vec2(0.5 * log(r) * r / dr, t0);
