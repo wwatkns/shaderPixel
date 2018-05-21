@@ -8,7 +8,7 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["skybox"]  = new Shader("./shader/vertex/skybox_vert.glsl", "./shader/fragment/skybox_frag.glsl");
     this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping_vert.glsl", "./shader/fragment/shadow_mapping_frag.glsl");
     // this->shader["cloud"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/cloud_frag.glsl");
-    this->shader["fractal"] = new Shader("./shader/vertex/fractal_vert.glsl", "./shader/fragment/fractal_frag.glsl");
+    this->shader["raymarch"] = new Shader("./shader/vertex/raymarch_vert.glsl", "./shader/fragment/raymarch_frag.glsl");
     this->initDepthMap();
     this->initShadowDepthMap(4096, 4096);
     this->useShadows = 0;
@@ -93,9 +93,9 @@ void    Renderer::renderLights( void ) {
         (*it)->render(*this->shader["default"]);
 
     /* render lights for fractals */
-    this->shader["fractal"]->use();
+    this->shader["raymarch"]->use();
     for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
-        (*it)->render(*this->shader["fractal"]);
+        (*it)->render(*this->shader["raymarch"]);
 }
 
 void    Renderer::renderMeshes( void ) {
@@ -115,7 +115,7 @@ void    Renderer::renderMeshes( void ) {
         for (auto it = this->env->getModels().begin(); it != this->env->getModels().end(); it++)
             (*it)->render(*this->shader["default"]);
 
-    /* copy the depth buffer to a texture (used in fractal shader for geometry occlusion of raymarched objects) */
+    /* copy the depth buffer to a texture (used in raymarch shader for geometry occlusion of raymarched objects) */
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
     glReadBuffer(GL_FRONT);
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 0, 0, this->depthMap.width, this->depthMap.height, 0);
@@ -135,24 +135,26 @@ void    Renderer::renderSkybox( void ) {
 
 void    Renderer::renderShaders( void ) {
     glDisable(GL_CULL_FACE);
-    this->shader["fractal"]->use();
-    this->shader["fractal"]->setMat4UniformValue("invProjection", this->camera.getInvProjectionMatrix());
-    this->shader["fractal"]->setMat4UniformValue("invView", this->camera.getInvViewMatrix());
-    this->shader["fractal"]->setFloatUniformValue("near", this->camera.getNear());
-    this->shader["fractal"]->setFloatUniformValue("far", this->camera.getFar());
-    this->shader["fractal"]->setVec3UniformValue("cameraPos", this->camera.getPosition());
+    glDisable(GL_DEPTH_TEST);
 
-    this->shader["fractal"]->setVec2UniformValue("uMouse", this->env->getController()->getMousePosition());
-    this->shader["fractal"]->setFloatUniformValue("uTime", glfwGetTime());
+    this->shader["raymarch"]->use();
+    this->shader["raymarch"]->setMat4UniformValue("invProjection", this->camera.getInvProjectionMatrix());
+    this->shader["raymarch"]->setMat4UniformValue("invView", this->camera.getInvViewMatrix());
+    this->shader["raymarch"]->setFloatUniformValue("near", this->camera.getNear());
+    this->shader["raymarch"]->setFloatUniformValue("far", this->camera.getFar());
+    this->shader["raymarch"]->setVec3UniformValue("cameraPos", this->camera.getPosition());
+
+    this->shader["raymarch"]->setVec2UniformValue("uMouse", this->env->getController()->getMousePosition());
+    this->shader["raymarch"]->setFloatUniformValue("uTime", glfwGetTime());
 
     /* geometry depth-buffer */
     glActiveTexture(GL_TEXTURE0);
-    this->shader["fractal"]->setIntUniformValue("depthBuffer", 0); // `default` was the value before ????
+    this->shader["raymarch"]->setIntUniformValue("depthBuffer", 0); // `default` was the value before ????
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
 
-    for (auto it = this->env->getRaymarchedObjects().begin(); it != this->env->getRaymarchedObjects().end(); it++)
-        (*it)->render(*this->shader["fractal"]);
+    this->env->getRaymarched()->render(*this->shader["raymarch"]);
 
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 }
 
@@ -212,6 +214,6 @@ void    Renderer::initDepthMap( void ) {
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    this->shader["fractal"]->use();
-    this->shader["fractal"]->setIntUniformValue("depthBuffer", 0);
+    this->shader["raymarch"]->use();
+    this->shader["raymarch"]->setIntUniformValue("depthBuffer", 0);
 }

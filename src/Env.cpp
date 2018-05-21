@@ -4,6 +4,8 @@ Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
         this->initGlfwWindow(720, 480);
+        // this->initGlfwWindow(1280, 720);
+        // this->initGlfwWindow(2560, 1200);
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
@@ -21,11 +23,12 @@ Env::Env( void ) {
         //     //     glm::vec3(0.5f)
         //     // ),
         // }};
-        this->raymarchedObjects = {{
-            new RaymarchedObject(
+        this->raymarched = new Raymarched({
+            (tObject){
+                eRaymarchObject::mandelbox,
                 glm::vec3(0.0),
                 glm::vec3(0.0),
-                glm::vec3(1.0),
+                0.05,
                 (tMaterial){
                     glm::vec3(0.0),
                     glm::vec3(0.0),
@@ -33,8 +36,34 @@ Env::Env( void ) {
                     82.0,
                     1.0
                 }
-            )
-        }};
+            },
+            (tObject){
+                eRaymarchObject::mandelbulb,
+                glm::vec3(1.0, 0.0, 0.0),
+                glm::vec3(0.0),
+                0.5,
+                (tMaterial){
+                    glm::vec3(0.0),
+                    glm::vec3(0.0),
+                    glm::vec3(0.35, 0.35, 0.35),
+                    82.0,
+                    1.0
+                }
+            },
+            (tObject){
+                eRaymarchObject::torus,
+                glm::vec3(-1.0, 0.0, 0.0),
+                glm::vec3(0.0),
+                0.1,
+                (tMaterial){
+                    glm::vec3(0.0),
+                    glm::vec3(0.925, 0.219, 0.098),
+                    glm::vec3(1.0, 1.0, 1.0),
+                    128.0,
+                    1.0
+                }
+            }
+        });
         this->lights = {{
             new Light(
                 glm::vec3(10, 10, 6),
@@ -72,12 +101,11 @@ Env::Env( void ) {
 Env::~Env( void ) {
     for (size_t i = 0; i < this->models.size(); ++i)
         delete this->models[i];
-    for (size_t i = 0; i < this->raymarchedObjects.size(); ++i)
-        delete this->raymarchedObjects[i];
     for (size_t i = 0; i < this->lights.size(); ++i)
         delete this->lights[i];
     delete this->skybox;
     delete this->controller;
+    delete this->raymarched;
     glfwDestroyWindow(this->window.ptr);
     glfwTerminate();
 }
