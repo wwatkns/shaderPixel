@@ -122,12 +122,23 @@ void    Model::processNode( aiNode* node, const aiScene* scene ) {
         this->processNode(node->mChildren[i], scene);
 }
 
+static void updateMinMaxMean( const glm::vec3& pos, glm::vec3* min, glm::vec3* max, glm::vec3* mean ) {
+    *mean += pos;
+    min->x = (pos.x < min->x ? pos.x : min->x);
+    min->y = (pos.y < min->y ? pos.y : min->y);
+    min->z = (pos.z < min->z ? pos.z : min->z);
+    max->x = (pos.x > max->x ? pos.x : max->x);
+    max->y = (pos.y > max->y ? pos.y : max->y);
+    max->z = (pos.z > max->z ? pos.z : max->z);
+}
+
 Mesh*    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
     std::vector<tVertex>        vertices;
     std::vector<unsigned int>   indices;
     std::vector<tTexture>       textures;
     tMaterial                   meshMaterial;
 
+    glm::vec3 min = glm::vec3(1000000), max = glm::vec3(-1000000), mean = glm::vec3(0.0);
     /* vertices */
     for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
         // so it can use a material index defined after
@@ -138,6 +149,13 @@ Mesh*    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
         vertex.Tangent = copyAssimpVector(mesh->mTangents[i]);
         vertex.Bitangent = copyAssimpVector(mesh->mBitangents[i]);
         vertices.push_back(vertex);
+        updateMinMaxMean(vertex.Position, &min, &max, &mean);
+    }
+    /* rescale and center position */
+    mean /= vertices.size();
+    for (int i = 0; i < vertices.size(); ++i) {
+        vertices[i].Position -= mean;
+        vertices[i].Position /= (max - min);
     }
     /* indices */
     for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {

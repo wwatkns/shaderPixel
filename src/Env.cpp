@@ -9,27 +9,45 @@ Env::Env( void ) {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
-        // this->models = {{
-        //     // new Model(
-        //     //     "/Users/wwatkins/Downloads/workshop/source/model.obj",
-        //     //     glm::vec3(0.0f, 0.0f, 0.0f),
-        //     //     glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
-        //     //     glm::vec3(10.0f, 10.0f, 10.0f)
-        //     // ),
-        //     // new Model(
-        //     //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
-        //     //     glm::vec3(0.0f),
-        //     //     glm::vec3(0.5f)
-        //     // ),
-        // }};
+        this->models = {{
+            // new Model(
+            //     "/Users/wwatkins/Downloads/workshop/source/model.obj",
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
+            //     glm::vec3(10.0f, 10.0f, 10.0f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+            //     glm::vec3(10.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(0.5f)
+            // ),
+            new Model(
+                "/Users/wwatkins/Downloads/chester-accent-table-bronze-405009/source/405009/405009.obj",
+                glm::vec3(10.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f),
+                glm::vec3(3.0f)
+            ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/small-elephant-statue/source/Small Elephant Statue/Small Elephant Statue.fbx",
+            //     glm::vec3(10.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(0.25f)
+            // ),
+            // new Model(
+            //     "/Users/wwatkins/Downloads/telescope/source/max1/All1.obj",
+            //     glm::vec3(10.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.0f),
+            //     glm::vec3(0.05f)
+            // )
+
+        }};
         this->raymarched = new Raymarched({
             (tObject){
                 eRaymarchObject::mandelbox,
+                glm::vec3(10.0, 4.0, 0.0),
                 glm::vec3(0.0),
-                glm::vec3(0.0),
-                1.0,
-                // 0.05,
+                0.25,
                 (tMaterial){
                     glm::vec3(0.0),
                     glm::vec3(0.0),

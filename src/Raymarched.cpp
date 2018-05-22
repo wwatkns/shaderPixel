@@ -4,7 +4,6 @@
 Raymarched::Raymarched( const std::vector<tObject>& objects ) : objects(objects) {
     this->createRenderQuad();
     this->setup(GL_STATIC_DRAW);
-    // this->update();
 }
 
 Raymarched::~Raymarched( void ) {
@@ -30,18 +29,7 @@ void    Raymarched::createRenderQuad( void ) {
     this->indices = {{ 0, 1, 2,  2, 3, 0 }};
 }
 
-// void    Raymarched::update( void ) {
-//     this->transform = glm::mat4();
-//     this->transform = glm::translate(this->transform, this->position);
-//     this->transform = glm::rotate(this->transform, this->orientation.z, glm::vec3(0, 0, 1));
-//     this->transform = glm::rotate(this->transform, this->orientation.y, glm::vec3(0, 1, 0));
-//     this->transform = glm::rotate(this->transform, this->orientation.x, glm::vec3(1, 0, 0));
-//     // this->transform = glm::scale(this->transform, this->scale);
-// }
-
 void    Raymarched::render( Shader shader ) {
-    // this->update();
-
     shader.setMat4UniformValue("model", glm::mat4());
     shader.setIntUniformValue("nObjects", this->objects.size());
 
@@ -65,7 +53,6 @@ void    Raymarched::render( Shader shader ) {
         shader.setFloatUniformValue(name+"scale", this->objects[i].scale);
         shader.setMat4UniformValue(name+"invMat", glm::inverse(mat));
     }
-
     /* render */
     glBindVertexArray(this->vao);
     glDrawElements(GL_TRIANGLES, this->indices.size(), GL_UNSIGNED_INT, 0);

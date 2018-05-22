@@ -43,8 +43,7 @@ uniform float uTime;
 uniform vec3 cameraPos;
 
 const int 	maxRaySteps = 300;      // the maximum number of steps the raymarching algorithm is allowed to perform
-const float maxDist = 5.0;          // the maximum distance the ray can travel in world-space
-// const float minDist = 0.0005;       // the distance from object threshold at which we consider a hit in raymarching
+const float maxDist = 20.0;          // the maximum distance the ray can travel in world-space
 const float minDist = 0.001;       // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 32; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
@@ -91,21 +90,24 @@ void    main() {
     vec3 viewDir = normalize(cameraPos - hit);
 
     // compute colors
-    // if (object[id].id == 0) { // mandelbox
-    //     float fog = res.x * 0.5;
-    //     float it = res.z / float(maxRaySteps);
-    //     vec3 color = fog * fog * vec3(0.9, 0.517, 0.345);
-    //     color += (it * vec3(log(it) * 0.231, it * 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.25;
-    //     vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false);
-        // FragColor = vec4(light * color + color * 0.33, -log(it)*2.0);
-    // }
     if (object[id].id == 0) { // mandelbox
-        float fog = res.x * 0.5;
+        float fog = res.x * 0.5 / object[id].scale;
         float it = res.z / float(maxRaySteps);
         vec3 colorFog = fog * fog * vec3(0.9, 0.517, 0.345) * 0.5;
         vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
         vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false);
-        FragColor = vec4(light * color * vec3(0.9, 0.517, 0.345) * 1.2 + colorFog, -log(it)*2.0);
+        FragColor = vec4(light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
+
+        /* add fog if we're in cube */
+        float t = 0.0;
+        for (int i = 0; i < 10; i++) {
+            float scale = 6.0 * object[id].scale;
+            vec3 p = (object[id].invMat * vec4(cameraPos + dir * t, 1.0)).xyz / scale;
+            float res = cube(p) * scale;
+            t += res;
+            if (t > maxDist || t > depth) break;
+            if (res < 0.1*object[id].scale) { FragColor.xyz += clamp(colorFog * (0.1-t), 0.0, 10.0); break; }
+        }
     }
     else if (object[id].id == 1) { // mandelbulb
         res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
