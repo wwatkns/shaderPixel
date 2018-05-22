@@ -25,7 +25,6 @@ public:
     Camera& operator=( const Camera& rhs );
     ~Camera( void );
 
-    // glm::vec3            interpolate( const glm::vec3& v0, const glm::vec3& v1, tTimePoint last, size_t duration = 250 );
     tMilliseconds       getElapsedMilliseconds( tTimePoint last );
 
     void                handleInputs( const std::array<tKey, N_KEY>& keys, const tMouse& mouse );

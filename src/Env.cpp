@@ -28,41 +28,42 @@ Env::Env( void ) {
                 eRaymarchObject::mandelbox,
                 glm::vec3(0.0),
                 glm::vec3(0.0),
-                0.05,
+                1.0,
+                // 0.05,
                 (tMaterial){
                     glm::vec3(0.0),
                     glm::vec3(0.0),
-                    glm::vec3(0.35, 0.35, 0.35),
-                    82.0,
-                    1.0
-                }
-            },
-            (tObject){
-                eRaymarchObject::mandelbulb,
-                glm::vec3(1.0, 0.0, 0.0),
-                glm::vec3(0.0),
-                0.5,
-                (tMaterial){
-                    glm::vec3(0.0),
-                    glm::vec3(0.0),
-                    glm::vec3(0.35, 0.35, 0.35),
-                    82.0,
-                    1.0
-                }
-            },
-            (tObject){
-                eRaymarchObject::torus,
-                glm::vec3(-1.0, 0.0, 0.0),
-                glm::vec3(0.0),
-                0.1,
-                (tMaterial){
-                    glm::vec3(0.0),
-                    glm::vec3(0.925, 0.219, 0.098),
-                    glm::vec3(1.0, 1.0, 1.0),
-                    128.0,
+                    glm::vec3(1.0),
+                    64.0,
                     1.0
                 }
             }
+            // (tObject){
+            //     eRaymarchObject::mandelbulb,
+            //     glm::vec3(1.0, 0.0, 0.0),
+            //     glm::vec3(0.0),
+            //     0.5,
+            //     (tMaterial){
+            //         glm::vec3(0.0),
+            //         glm::vec3(0.0),
+            //         glm::vec3(0.35, 0.35, 0.35),
+            //         82.0,
+            //         1.0
+            //     }
+            // },
+            // (tObject){
+            //     eRaymarchObject::torus,
+            //     glm::vec3(-1.0, 0.0, 0.0),
+            //     glm::vec3(0.0),
+            //     0.1,
+            //     (tMaterial){
+            //         glm::vec3(0.0),
+            //         glm::vec3(0.925, 0.219, 0.098),
+            //         glm::vec3(1.0, 1.0, 1.0),
+            //         128.0,
+            //         1.0
+            //     }
+            // }
         });
         this->lights = {{
             new Light(
