@@ -153,10 +153,12 @@ Mesh*    Model::processMesh( aiMesh* mesh, const aiScene* scene ) {
     }
     /* rescale and center position */
     mean /= vertices.size();
+    float scale = glm::max((max-min).x, glm::max((max-min).y, (max-min).z));
     for (int i = 0; i < vertices.size(); ++i) {
         vertices[i].Position -= mean;
-        vertices[i].Position /= (max - min);
+        vertices[i].Position /= scale;
     }
+
     /* indices */
     for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
         aiFace face = mesh->mFaces[i];

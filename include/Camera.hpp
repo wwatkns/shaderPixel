@@ -40,12 +40,13 @@ public:
     const glm::mat4&    getInvViewMatrix( void ) const { return (invViewMatrix); };
     const glm::vec3&    getPosition( void ) const { return (position); };
     const glm::vec3&    getCameraFront( void ) const { return (cameraFront); };
-    glm::vec3           getCameraRight( void ) const;
-    glm::vec3           getCameraTop( void ) const;
     const float         getFov( void ) const { return (fov); };
     const float         getAspect( void ) const { return (aspect); };
     const float         getNear( void ) const { return (near); };
     const float         getFar( void ) const { return (far); };
+
+    float               speed;
+    float               speedmod;
 
 private:
     glm::mat4   projectionMatrix;

@@ -29,10 +29,11 @@ typedef struct  sQuadVertex {
 
 typedef struct  sObject {
     eRaymarchObject id;
-    glm::vec3   position;
-    glm::vec3   orientation;
-    float       scale;
-    tMaterial   material;
+    glm::vec3       position;
+    glm::vec3       orientation;
+    float           scale;
+    float           speedMod;
+    tMaterial       material;
 }               tObject;
 
 class Raymarched {
@@ -41,8 +42,8 @@ public:
     Raymarched( const std::vector<tObject>& objects );
     ~Raymarched( void );
 
-    // void            update( void );
     void            render( Shader shader );
+    float           computeSpeedModifier( const glm::vec3& cameraPos );
 
     /* getters */
     // const glm::mat4&    getTransform( void ) const { return (transform); };
@@ -55,19 +56,11 @@ public:
     // void                setScale( const glm::vec3& s ) { scale = s; };
 
 private:
-    // glm::mat4                   transform;          // the transform applied to the model
-    // glm::vec3                   position;           // the position
-    // glm::vec3                   orientation;        // the orientation
-    // glm::vec3                   scale;              // the scale
-    // eRaymarchObject             id;
-    // tMaterial                   material;
-
     std::vector<tObject>        objects;
 
+    /* render quad variables */
     std::vector<tQuadVertex>    vertices;
     std::vector<unsigned int>   indices;
-
-
     unsigned int                vao;
     unsigned int                vbo;
     unsigned int                ebo;

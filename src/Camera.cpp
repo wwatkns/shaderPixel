@@ -4,15 +4,17 @@
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
     this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
-    this->position = glm::vec3(0.0f, 2.9f, 5.5f);
-    // this->position = glm::vec3(0.0f, 6.2f, 6.2f);
-    // this->position = glm::vec3(0.0f, 0.0f, 2.0);
-    this->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    this->position = glm::vec3(0.0f, 2.9f, 5.5f) * 0.25;
+    this->cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
+    // this->position = glm::vec3(0.0f, 0.0f, 1.5);
+    // this->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0.0f, 1.0f, 0.0f));
     this->invViewMatrix = glm::inverse(this->viewMatrix);
     this->pitch = 0;
     this->yaw = 0;
     this->last = std::chrono::steady_clock::now();
+    this->speed = 0.0025;
+    this->speedmod = 1.0;
 }
 
 Camera::Camera( const Camera& rhs ) {
@@ -66,10 +68,6 @@ void    Camera::handleInputs( const std::array<tKey, N_KEY>& keys, const tMouse&
     this->last = std::chrono::steady_clock::now();
 }
 
-glm::vec3   lerp(glm::vec3 v0, glm::vec3 v1, float t) {
-    return (v0 * (1.0 - t) + v1 * t);
-}
-
 void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
     glm::vec4    translate(
         (float)(keys[GLFW_KEY_A].value - keys[GLFW_KEY_D].value),
@@ -79,7 +77,7 @@ void    Camera::handleKeys( const std::array<tKey, N_KEY>& keys ) {
     );
     /* translation is in the same coordinate system as view (moves in same direction) */
     translate = glm::transpose(this->viewMatrix) * glm::normalize(translate);
-    this->position = this->position - glm::vec3(translate) * this->getElapsedMilliseconds(this->last).count() * 0.01f;// * 0.25;
+    this->position = this->position - glm::vec3(translate) * this->getElapsedMilliseconds(this->last).count() * this->speed * this->speedmod;
 }
 
 void    Camera::handleMouse( const tMouse& mouse, float sensitivity ) {
@@ -96,16 +94,4 @@ void    Camera::handleMouse( const tMouse& mouse, float sensitivity ) {
 
 tMilliseconds   Camera::getElapsedMilliseconds( tTimePoint last ) {
     return (std::chrono::steady_clock::now() - last);
-}
-
-// TODO
-// CameraRight_worldspace = {ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]}
-// CameraUp_worldspace = {ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]}
-
-glm::vec3   Camera::getCameraRight( void ) const {
-    return glm::transpose(glm::mat3(this->viewMatrix)) * glm::vec3(1, 0, 0);
-}
-
-glm::vec3   Camera::getCameraTop( void ) const {
-    return glm::transpose(glm::mat3(this->viewMatrix)) * glm::vec3(0, 1, 0);
 }

@@ -9,58 +9,54 @@ Env::Env( void ) {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
-        this->models = {{
-            // new Model(
-            //     "/Users/wwatkins/Downloads/workshop/source/model.obj",
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f, -M_PI/2.0f, 0.0f),
-            //     glm::vec3(10.0f, 10.0f, 10.0f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-            //     glm::vec3(10.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(0.5f)
-            // ),
-            new Model(
-                "/Users/wwatkins/Downloads/chester-accent-table-bronze-405009/source/405009/405009.obj",
-                glm::vec3(10.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f),
-                glm::vec3(3.0f)
-            ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/small-elephant-statue/source/Small Elephant Statue/Small Elephant Statue.fbx",
-            //     glm::vec3(10.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(0.25f)
-            // ),
-            // new Model(
-            //     "/Users/wwatkins/Downloads/telescope/source/max1/All1.obj",
-            //     glm::vec3(10.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.0f),
-            //     glm::vec3(0.05f)
-            // )
-
-        }};
+        // this->models = {{
+        //     // new Model(
+        //     //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
+        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f),
+        //     //     glm::vec3(0.5f)
+        //     // ),
+        //     // new Model(
+        //     //     "/Users/wwatkins/Downloads/chester-accent-table-bronze-405009/source/405009/405009.obj",
+        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f),
+        //     //     glm::vec3(3.0f)
+        //     // ),
+        //     new Model(
+        //         "/Users/wwatkins/Downloads/rock-basalt-column/source/model/model.obj",
+        //         glm::vec3(10.0f, 0.0f, 0.0f),
+        //         glm::vec3(0.0f),
+        //         glm::vec3(3.0f)
+        //     )
+        //     // new Model(
+        //     //     "/Users/wwatkins/Downloads/telescope/source/max1/All1.obj",
+        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f),
+        //     //     glm::vec3(0.05f)
+        //     // )
+        // }};
         this->raymarched = new Raymarched({
             (tObject){
                 eRaymarchObject::mandelbox,
-                glm::vec3(10.0, 4.0, 0.0),
+                glm::vec3(0.0), //glm::vec3(10.0, 4.0, 0.0),
                 glm::vec3(0.0),
-                0.25,
+                1.0,
+                0.03,
                 (tMaterial){
                     glm::vec3(0.0),
                     glm::vec3(0.0),
-                    glm::vec3(1.0),
-                    64.0,
+                    // glm::vec3(0.976, 0.65, 0.008), // gold
+                    glm::vec3(0.659, 1.0, 0.537),
+                    50.0,
                     1.0
                 }
-            }
+            },
             // (tObject){
             //     eRaymarchObject::mandelbulb,
-            //     glm::vec3(1.0, 0.0, 0.0),
+            //     glm::vec3(3.0, 0.0, 0.0),
             //     glm::vec3(0.0),
-            //     0.5,
+            //     1.0,
+            //     0.1,
             //     (tMaterial){
             //         glm::vec3(0.0),
             //         glm::vec3(0.0),
@@ -71,12 +67,13 @@ Env::Env( void ) {
             // },
             // (tObject){
             //     eRaymarchObject::torus,
-            //     glm::vec3(-1.0, 0.0, 0.0),
+            //     glm::vec3(0.0, -0.6, 0.0),
             //     glm::vec3(0.0),
             //     0.1,
+            //     1.0,
             //     (tMaterial){
             //         glm::vec3(0.0),
-            //         glm::vec3(0.925, 0.219, 0.098),
+            //         glm::vec3(1.0),
             //         glm::vec3(1.0, 1.0, 1.0),
             //         128.0,
             //         1.0
@@ -140,10 +137,10 @@ void	Env::initGlfwEnvironment( const std::string& glVersion ) {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    // glfwWindowHint(GLFW_SAMPLES, 4);
 }
 
 void	Env::initGlfwWindow( size_t width, size_t height ) {
-    // glfwWindowHint(GLFW_SAMPLES, 4); // NOTE: check if anti-aliasing is slow
 	if (!(this->window.ptr = glfwCreateWindow(width, height, "shaderPixel", NULL, NULL)))
         throw Exception::InitError("glfwCreateWindow failed");
 	glfwMakeContextCurrent(this->window.ptr);

@@ -42,19 +42,22 @@ uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 cameraPos;
 
-const int 	maxRaySteps = 300;      // the maximum number of steps the raymarching algorithm is allowed to perform
-const float maxDist = 20.0;          // the maximum distance the ray can travel in world-space
-const float minDist = 0.001;       // the distance from object threshold at which we consider a hit in raymarching
+const int 	maxRaySteps = 200;      // the maximum number of steps the raymarching algorithm is allowed to perform
+const float maxDist = 10.0;         // the maximum distance the ray can travel in world-space
+const float minDist = 0.0001;        // the distance from object threshold at which we consider a hit in raymarching
 
-const int 	maxRayStepsShadow = 32; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
+const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
 const float minDistShadow = 0.005;  // the distance from object threshold at which we consider a hit in raymarching for shadows
 
+#define OCCLUSION_ITERS 10
+#define OCCLUSION_STRENGTH 32.0
+#define OCCLUSION_GRANULARITY 0.05
 
 /* prototypes */
 vec4    raymarch( in vec3 ro, in vec3 rd, float s );
 vec3    getNormal( in vec3 p );
-vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows );
+vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion );
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
 float   ambientOcclusion( in vec3 hit, in vec3 normal );
 vec3    map( in vec3 p );
@@ -64,7 +67,6 @@ float   box( vec3 p, vec3 s );
 float   torus( vec3 p );
 vec2    mandelbulb( vec3 p );
 vec2    mandelbox( vec3 p );
-
 
 void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
@@ -91,33 +93,38 @@ void    main() {
 
     // compute colors
     if (object[id].id == 0) { // mandelbox
-        float fog = res.x * 0.5 / object[id].scale;
         float it = res.z / float(maxRaySteps);
-        vec3 colorFog = fog * fog * vec3(0.9, 0.517, 0.345) * 0.5;
         vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
-        vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false);
-        FragColor = vec4(light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
+        vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false, false);
+
+        // float t = mod(sin(hit.z * uTime * 0.33) * cos(hit.y * uTime) * sin(hit.x * uTime * 2.0), 2.0);
+        // color = mix(color, vec3(6.0, 6.0, 8.0), pow(smoothstep(0.0, 0.2, t) * smoothstep(0.4, 0.2, t), 15.0));
+
+        // FragColor = vec4(light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
+        FragColor = vec4(light * color * 1.0, -log(it)*2.0);
 
         /* add fog if we're in cube */
-        float t = 0.0;
-        for (int i = 0; i < 10; i++) {
-            float scale = 6.0 * object[id].scale;
-            vec3 p = (object[id].invMat * vec4(cameraPos + dir * t, 1.0)).xyz / scale;
-            float res = cube(p) * scale;
-            t += res;
-            if (t > maxDist || t > depth) break;
-            if (res < 0.1*object[id].scale) { FragColor.xyz += clamp(colorFog * (0.1-t), 0.0, 10.0); break; }
-        }
+        // float fog = res.x * 0.5 / object[id].scale * 6.0;
+        // vec3 colorFog = fog * fog * vec3(0.9, 0.517, 0.345) * 0.5;
+        // float t = 0.0;
+        // for (int i = 0; i < 10; i++) {
+        //     float scale = object[id].scale;
+        //     vec3 p = (object[id].invMat * vec4(cameraPos + dir * t, 1.0)).xyz / scale;
+        //     float res = cube(p) * scale;
+        //     t += res;
+        //     if (t > maxDist || t > depth) break;
+        //     if (res < 0.1*object[id].scale) { FragColor.xyz += clamp(colorFog * (0.1-t), 0.0, 10.0); break; }
+        // }
     }
     else if (object[id].id == 1) { // mandelbulb
         res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
         vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
         vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
-        vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true);
+        vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, true);
         FragColor = vec4(color, object[id].material.opacity);
     }
     else {
-        vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true);
+        vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
         FragColor = vec4(color, object[id].material.opacity);
     }
 
@@ -161,39 +168,40 @@ vec3    map( in vec3 p ) {
     return res;
 }
 
-/* return: distance, t0, iteration, object_id */
+/* return: distance, trap, ray_iterations, object_id */
 vec4    raymarch( in vec3 ro, in vec3 rd, float s ) {
 	float t = 0.0;
 	for (int i = 0; i < maxRaySteps; i++) {
         vec3 res = map(ro + rd * t);
 		t += res.x;
-        if (t > maxDist || t > s) return vec4(0.0, 0.0, i, res.z); // optimization and geometry occlusion
+        if (t > maxDist || t > s) return vec4(0.0, 0.0, i, 0.0); // optimization and geometry occlusion
 		if (res.x < minDist) return vec4(t, res.y, i, res.z);
 	}
-	return vec4(0.0, 0.0, maxRaySteps, 0);
+	return vec4(0.0, 0.0, maxRaySteps, 0.0);
 }
 
 vec3    getNormal( in vec3 p ) {
-    const vec2 eps = vec2(0.001, 0.0);
+    const vec2 eps = vec2(minDist*0.1, 0.0);
     return normalize(vec3(map(p + eps.xyy).x - map(p - eps.xyy).x,
                           map(p + eps.yxy).x - map(p - eps.yxy).x,
                           map(p + eps.yyx).x - map(p - eps.yyx).x));
 }
 
-vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows ) {
+vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion ) {
     vec3 lightDir = normalize(directionalLight.position);
     /* diffuse */
     float diff = max(dot(normal, lightDir), 0.0);
     /* specular */
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), object[objId].material.shininess);
-    /* shadow */
-    float shadow = (use_shadows == true ? softShadow(hit, lightDir, 0.1, 64) : 1.0);
+    /* shadow and ambient occlusion */
+    float shadow = (use_shadows == true ? softShadow(hit, lightDir, 0.1, 32) : 1.0);
+    float ao = (use_occlusion == true ? ambientOcclusion(hit, normal) : 1.0);
     /* compute terms */
     vec3 ambient  = directionalLight.ambient  * m_diffuse;
-    vec3 diffuse  = directionalLight.diffuse  * diff * m_diffuse * shadow;
-    vec3 specular = directionalLight.specular * spec * object[objId].material.specular * shadow;
-    return ambient + diffuse + specular;
+    vec3 diffuse  = directionalLight.diffuse  * diff * m_diffuse;
+    vec3 specular = directionalLight.specular * spec * object[objId].material.specular;
+    return ambient + (diffuse + specular) * shadow * ao;
 }
 
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k ) {
@@ -205,9 +213,21 @@ float   softShadow( in vec3 ro, in vec3 rd, float mint, float k ) {
             return 0.0;
         res = min(res, k * h / t);
 		t += h;
-        if (t > maxDistShadow) break; // check geometry occlusion here ?
+        if (t > maxDistShadow) break;
 	}
 	return res;
+}
+
+float   ambientOcclusion( in vec3 hit, in vec3 normal ) {
+    float k = 1.0;
+    float d = 0.0;
+    float occ = 0.0;
+    for(int i = 0; i < OCCLUSION_ITERS; i++){
+        d = map(hit + normal * k * OCCLUSION_GRANULARITY).x;
+        occ += 1.0 / pow(3.0, k) * ((k - 1.0) * OCCLUSION_GRANULARITY - d);
+        k += 1.0;
+    }
+    return 1.0 - clamp(occ * OCCLUSION_STRENGTH, 0.0, 1.0);
 }
 
 /*  Distance Estimators
@@ -238,8 +258,8 @@ vec2   mandelbulb( vec3 p ) {
         r = length(z);
         if (r > 2.0) break;
         // convert to polar coordinates
-        theta = asin(z.z / r);// + uTime * 0.01;
-        phi = atan(z.y, z.x);// + uTime * 0.005;
+        theta = asin(z.z / r) + uTime * 0.1;
+        phi = atan(z.y, z.x);// + uTime * 0.05;
         float rpow = pow(r, power - 1.0);
         dr = rpow * power * dr + 1.0;
         // scale and rotate the point
@@ -264,7 +284,7 @@ vec2   mandelbox( vec3 p ) {
     const vec4 scalevec = vec4(scale, scale, scale, abs(scale)) / minRadius2;
     const float C1 = abs(scale - 1.0), C2 = pow(abs(scale), float(1 - 12));
 
-    vec4 z = vec4(p.xyz, 1.0), p0 = vec4(p.xyz, 1.0);
+    vec4 z = vec4(p.xyz * 6.0, 1.0), p0 = vec4(p.xyz * 6.0, 1.0);
     float t0 = 1.0;
     for (int i = 0; i < 12; i++) {
         z.xyz = clamp(z.xyz, -1.0, 1.0) * 2.0 - z.xyz;  // box fold
@@ -273,5 +293,36 @@ vec2   mandelbox( vec3 p ) {
         z.xyzw = z * scalevec + p0;
         t0 = min(t0, r2);
     }
-	return vec2((length(z.xyz) - C1) / z.w - C2, t0);
+	return vec2(((length(z.xyz) - C1) / z.w - C2) / 6.0, t0);
 }
+
+// vec2   mandelbox( vec3 p ) {
+//     vec3 z = p;
+//     float r2 = 0.0;
+//     float DEfactor = 1.0;
+//     float t0 = 1.0;
+//     const float scale = 2.0;
+//     const float fixedRadius = 1.0;
+//     const float fR2 = fixedRadius * fixedRadius;
+//     const float minRadius = 0.5;
+//     const float mR2 = minRadius * minRadius;
+//     for (int i = 0; i < 12; i++) {
+//         if (z.x > 1.0) z.x = scale - z.x; else if (z.x < -1.0) z.x = -scale - z.x;
+//         if (z.y > 1.0) z.y = scale - z.y; else if (z.y < -1.0) z.y = -scale - z.y;
+//         if (z.z > 1.0) z.z = scale - z.z; else if (z.z < -1.0) z.z = -scale - z.z;
+//
+//         r2 = z.x*z.x + z.y*z.y + z.z*z.z;
+//         if (r2 < mR2) {
+//             z = z * fR2 / mR2;
+//             DEfactor = DEfactor * fR2 / mR2;
+//         }
+//         else if (r2 < fR2) {
+//             z = z * fR2 / r2;
+//             DEfactor *= fR2 / r2;
+//         }
+//         z = z * scale + p;
+//         DEfactor = DEfactor * abs(scale) + 1.0;
+//         t0 = min(t0, r2);
+//     }
+//     return vec2((length(z) - abs(scale-1.0)) / abs(DEfactor) - pow(abs(scale), 1.0 - 12), t0);
+// }

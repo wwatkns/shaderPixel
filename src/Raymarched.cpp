@@ -12,6 +12,27 @@ Raymarched::~Raymarched( void ) {
     glDeleteBuffers(1, &this->ebo);
 }
 
+float   lerp(float v0, float v1, float t) {
+    return (v0 * (1.0 - t) + v1 * t);
+}
+
+float   Raymarched::computeSpeedModifier( const glm::vec3& cameraPos ) {
+    float speedmod = 1.0;
+    for (size_t i = 0; i < this->objects.size(); ++i) {
+        if (this->objects[i].speedMod != 1.0) {
+            float width = 1.0f;
+            float dist = glm::length(cameraPos - this->objects[i].position);
+            float radius = 1.4142f * this->objects[i].scale;
+            if (dist >= radius && dist < radius + width)
+                speedmod = lerp(1.0, this->objects[i].speedMod, (radius + width - dist) / width);
+            else if (dist < radius)
+                speedmod = this->objects[i].speedMod;
+        }
+    }
+    // std::cout << "speedmod: " << speedmod << std::endl;
+    return (speedmod);
+}
+
 void    Raymarched::createRenderQuad( void ) {
     /* create quad */
     std::vector<float> v = {{

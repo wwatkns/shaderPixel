@@ -32,6 +32,8 @@ void	Renderer::loop( void ) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         this->env->getController()->update();
+
+        this->camera.speedmod = this->env->getRaymarched()->computeSpeedModifier(this->camera.getPosition()); // NEW
         this->camera.handleInputs(this->env->getController()->getKeys(), this->env->getController()->getMouse());
 
         this->useShadows = this->env->getController()->getKeyValue(GLFW_KEY_P);
@@ -152,7 +154,8 @@ void    Renderer::renderShaders( void ) {
     this->shader["raymarch"]->setIntUniformValue("depthBuffer", 0); // `default` was the value before ????
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
 
-    this->env->getRaymarched()->render(*this->shader["raymarch"]);
+    if (this->env->getRaymarched())
+        this->env->getRaymarched()->render(*this->shader["raymarch"]);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
