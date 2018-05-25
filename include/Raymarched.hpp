@@ -19,6 +19,7 @@
 enum class eRaymarchObject {
     mandelbox,
     mandelbulb,
+    ifs,
     torus
 };
 
@@ -44,16 +45,6 @@ public:
 
     void            render( Shader shader );
     float           computeSpeedModifier( const glm::vec3& cameraPos );
-
-    /* getters */
-    // const glm::mat4&    getTransform( void ) const { return (transform); };
-    // const glm::vec3&    getPosition( void ) const { return (position); };
-    // const glm::vec3&    getOrientation( void ) const { return (orientation); };
-    // const glm::vec3&    getScale( void ) const { return (scale); };
-    // /* setters */
-    // void                setPosition( const glm::vec3& t ) { position = t; };
-    // void                setOrientation( const glm::vec3& r ) { orientation = r; };
-    // void                setScale( const glm::vec3& s ) { scale = s; };
 
 private:
     std::vector<tObject>        objects;

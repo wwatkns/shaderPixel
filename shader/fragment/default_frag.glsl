@@ -91,7 +91,7 @@ void    handleStates( void ) {
     gEmissive = (state.use_texture_emissive ? texture(texture_emissive1, TexCoords).rgb : material.ambient);
     if (state.use_texture_normal) {
         mat3 TBN = mat3(Tangent, cross(Tangent, Normal), Normal);
-        gNormal = TBN * normalize(texture(texture_normal1, TexCoords).rgb * 2.0 - 1.0);
+        gNormal = TBN * normalize(texture(texture_normal1, TexCoords).rgb * 2.0 - 1.0); // from [0,1] to [-1,1]
     }
     else
         gNormal = normalize(Normal);

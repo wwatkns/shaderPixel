@@ -11,51 +11,65 @@ Env::Env( void ) {
         this->controller = new Controller(this->window.ptr);
         // this->models = {{
         //     // new Model(
-        //     //     "/Users/wwatkins/Downloads/pillar01/source/Pillar_LP.obj",
-        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
-        //     //     glm::vec3(0.0f),
-        //     //     glm::vec3(0.5f)
-        //     // ),
-        //     // new Model(
         //     //     "/Users/wwatkins/Downloads/chester-accent-table-bronze-405009/source/405009/405009.obj",
-        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f, 0.0f, 0.0f),
         //     //     glm::vec3(0.0f),
-        //     //     glm::vec3(3.0f)
+        //     //     glm::vec3(1.0f)
         //     // ),
         //     new Model(
-        //         "/Users/wwatkins/Downloads/rock-basalt-column/source/model/model.obj",
-        //         glm::vec3(10.0f, 0.0f, 0.0f),
+        //         "/Users/wwatkins/Downloads/old-romanic-pilar/source/model/model.obj",
+        //         glm::vec3(0.0f, 0.0f, 0.0f),
         //         glm::vec3(0.0f),
-        //         glm::vec3(3.0f)
-        //     )
-        //     // new Model(
-        //     //     "/Users/wwatkins/Downloads/telescope/source/max1/All1.obj",
-        //     //     glm::vec3(10.0f, 0.0f, 0.0f),
-        //     //     glm::vec3(0.0f),
-        //     //     glm::vec3(0.05f)
-        //     // )
+        //         glm::vec3(5.0f)
+        //     ),
+        //     new Model(
+        //         "/Users/wwatkins/Downloads/old-romanic-pilar/source/model/model.obj",
+        //         glm::vec3(4.0f, 0.0f, 0.0f),
+        //         glm::vec3(0.0f),
+        //         glm::vec3(5.0f)
+        //     ),
+        //     new Model(
+        //         "/Users/wwatkins/Downloads/old-romanic-pilar/source/model/model.obj",
+        //         glm::vec3(8.0f, 0.0f, 0.0f),
+        //         glm::vec3(0.0f),
+        //         glm::vec3(5.0f)
+        //     ),
         // }};
         this->raymarched = new Raymarched({
             (tObject){
-                eRaymarchObject::mandelbox,
-                glm::vec3(0.0), //glm::vec3(10.0, 4.0, 0.0),
+                eRaymarchObject::ifs,
+                glm::vec3(0.0, 0.0, 0.0),
                 glm::vec3(0.0),
                 1.0,
-                0.03,
+                0.01,
                 (tMaterial){
                     glm::vec3(0.0),
-                    glm::vec3(0.0),
-                    // glm::vec3(0.976, 0.65, 0.008), // gold
-                    glm::vec3(0.659, 1.0, 0.537),
-                    50.0,
+                    glm::vec3(1.0),
+                    glm::vec3(1.0, 1.0, 1.0),
+                    128.0,
                     1.0
                 }
             },
+
+            // (tObject){
+            //     eRaymarchObject::mandelbox,
+            //     glm::vec3(0.0, 4.0, 0.0),
+            //     glm::vec3(0.0),
+            //     0.5,
+            //     0.015,
+            //     (tMaterial){
+            //         glm::vec3(0.0),
+            //         glm::vec3(0.0),
+            //         glm::vec3(0.659, 1.0, 0.537),
+            //         50.0,
+            //         1.0
+            //     }
+            // },
             // (tObject){
             //     eRaymarchObject::mandelbulb,
-            //     glm::vec3(3.0, 0.0, 0.0),
+            //     glm::vec3(4.0, 4.0, 0.0),
             //     glm::vec3(0.0),
-            //     1.0,
+            //     0.5,
             //     0.1,
             //     (tMaterial){
             //         glm::vec3(0.0),
@@ -67,7 +81,7 @@ Env::Env( void ) {
             // },
             // (tObject){
             //     eRaymarchObject::torus,
-            //     glm::vec3(0.0, -0.6, 0.0),
+            //     glm::vec3(8.0, 3.5, 0.0),
             //     glm::vec3(0.0),
             //     0.1,
             //     1.0,
