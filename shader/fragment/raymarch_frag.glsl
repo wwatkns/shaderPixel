@@ -42,7 +42,7 @@ uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 cameraPos;
 
-const int 	maxRaySteps = 500;      // the maximum number of steps the raymarching algorithm is allowed to perform
+const int 	maxRaySteps = 300;      // the maximum number of steps the raymarching algorithm is allowed to perform
 const float maxDist = 10.0;         // the maximum distance the ray can travel in world-space
 const float minDist = 0.0001;        // the distance from object threshold at which we consider a hit in raymarching
 
@@ -119,15 +119,25 @@ void    main() {
         vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, true);
         FragColor = vec4(color, object[id].material.opacity);
     }
-    // else {
-    //     vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
-    //     FragColor = vec4(color, object[id].material.opacity);
-    // }
+    else if (object[id].id == 2) { // K-IFS
+        float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
+        vec3 glow = vec3(1.0, 0.819, 0.486) * g * 1.5;
+        // vec3 glow = vec3(g);
+
+        vec3 diffuse = vec3(0.051, 0.678, 0.470);
+
+        vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
+        FragColor = vec4(glow * light, 1.0);
+    }
+    else {
+        vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
+        FragColor = vec4(color, object[id].material.opacity);
+    }
 
     // iterations color
-    {
-        FragColor = vec4(res.z / float(maxRaySteps), 0, 0.03, 1.0);
-    }
+    // {
+        // FragColor = vec4(res.z / float(maxRaySteps), 0, 0.03, 1.0);
+    // }
 
     // depth-buffer debug
     // {
@@ -294,22 +304,22 @@ vec2   mandelbox( vec3 p ) {
 	return vec2(((length(z.xyz) - C1) / z.w - C2) / 6.0, t0);
 }
 
-float ifs(vec3 p) {
-    float ui = 100.0 * uTime;
+float   ifs(vec3 p) {
+    float ui = 100.0 * uTime;// * 0.1;
     float y = -0.001 * ui;
-    mat2 m = mat2(sin(y), cos(y), -cos(y), sin(y));
+    mat2  m = mat2(sin(y), cos(y), -cos(y), sin(y));
     y = 0.0035 * ui;
-    mat2 n = mat2(sin(y), cos(y), -cos(y), sin(y));
+    mat2  n = mat2(sin(y), cos(y), -cos(y), sin(y));
     y = 0.0023 * ui;
     mat2 nn = mat2(sin(y), cos(y), -cos(y), sin(y));
 
     float t = 2.5;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 14; i++) {
         t = t * 0.66;
         p.xy =  m * p.xy;
         p.yz =  n * p.yz;
         p.zx = nn * p.zx;
         p.xz = abs(p.xz) - t;
     }
-    return length(p) - 2.0*t;
+    return length(p) - 2.0 * t;
 }
