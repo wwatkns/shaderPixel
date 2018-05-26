@@ -22,23 +22,23 @@ Env::Env( void ) {
         //         glm::vec3(0.0f),
         //         glm::vec3(5.0f)
         //     ),
-        //     new Model(
-        //         "/Users/wwatkins/Downloads/old-romanic-pilar/source/model/model.obj",
-        //         glm::vec3(4.0f, 0.0f, 0.0f),
-        //         glm::vec3(0.0f),
-        //         glm::vec3(5.0f)
-        //     ),
-        //     new Model(
-        //         "/Users/wwatkins/Downloads/old-romanic-pilar/source/model/model.obj",
-        //         glm::vec3(8.0f, 0.0f, 0.0f),
-        //         glm::vec3(0.0f),
-        //         glm::vec3(5.0f)
-        //     ),
+        //     // new Model(
+        //     //     "/Users/wwatkins/Downloads/old-romanic-pilar/source/model/model.obj",
+        //     //     glm::vec3(4.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f),
+        //     //     glm::vec3(5.0f)
+        //     // ),
+        //     // new Model(
+        //     //     "/Users/wwatkins/Downloads/old-romanic-pilar/source/model/model.obj",
+        //     //     glm::vec3(8.0f, 0.0f, 0.0f),
+        //     //     glm::vec3(0.0f),
+        //     //     glm::vec3(5.0f)
+        //     // ),
         // }};
         this->raymarched = new Raymarched({
             (tObject){
                 eRaymarchObject::ifs,
-                glm::vec3(0.0, 0.0, 0.0),
+                glm::vec3(0.0, 2.0, 0.0),
                 glm::vec3(0.0),
                 0.25,
                 0.03,
@@ -50,7 +50,6 @@ Env::Env( void ) {
                     1.0
                 }
             },
-
             // (tObject){
             //     eRaymarchObject::mandelbox,
             //     glm::vec3(0.0, 4.0, 0.0),
