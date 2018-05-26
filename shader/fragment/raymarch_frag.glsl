@@ -62,8 +62,10 @@ float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
 float   ambientOcclusion( in vec3 hit, in vec3 normal );
 vec3    map( in vec3 p );
 
+float   sphere( vec3 p, float s );
 float   cube( vec3 p );
 float   box( vec3 p, vec3 s );
+float   smoothBox( vec3 p, vec3 s, float r );
 float   torus( vec3 p );
 vec2    mandelbulb( vec3 p );
 vec2    mandelbox( vec3 p );
@@ -121,13 +123,10 @@ void    main() {
     }
     else if (object[id].id == 2) { // K-IFS
         float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
-        vec3 glow = vec3(1.0, 0.819, 0.486) * g * 1.5;
-        // vec3 glow = vec3(g);
-
-        vec3 diffuse = vec3(0.051, 0.678, 0.470);
-
+        vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
+        vec3 diffuse = vec3(1.0, 0.694, 0.251);
         vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
-        FragColor = vec4(glow * light, 1.0);
+        FragColor = vec4(light + log(glow * 0.95) * 0.75, 1.0);
     }
     else {
         vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
@@ -240,6 +239,11 @@ float   ambientOcclusion( in vec3 hit, in vec3 normal ) {
 
 /*  Distance Estimators
 */
+
+float   sphere( vec3 p, float s ) {
+    return length(p) - s;
+}
+
 float   torus( vec3 p ) {
     vec2 t = vec2(2, 0.75);
     vec2 q = vec2(length(p.xz) - t.x, p.y);
@@ -253,8 +257,13 @@ float   cube( vec3 p ) {
 
 float   box( vec3 p, vec3 s ) {
     vec3 d = abs(p) - s;
-    return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
+    return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
 }
+
+float   smoothBox( vec3 p, vec3 s, float r ) {
+    return length(max(abs(p) - s, 0.0)) - r;
+}
+
 
 vec2   mandelbulb( vec3 p ) {
     const float power = 8.0;
@@ -313,13 +322,15 @@ float   ifs(vec3 p) {
     y = 0.0023 * ui;
     mat2 nn = mat2(sin(y), cos(y), -cos(y), sin(y));
 
-    float t = 2.5;
-    for (int i = 0; i < 14; i++) {
+    float t = 1.0;
+    for (int i = 0; i < 13; i++) {
         t = t * 0.66;
         p.xy =  m * p.xy;
         p.yz =  n * p.yz;
         p.zx = nn * p.zx;
         p.xz = abs(p.xz) - t;
     }
-    return length(p) - 2.0 * t;
+    // return sphere(p, 2.0 * t);
+    return smoothBox(p, vec3(0.975 * t), 0.1 * t);
+    // return smoothBox(p, vec3(t * 0.15, t * 0.15, t * 2.0), 0.0); // rod
 }

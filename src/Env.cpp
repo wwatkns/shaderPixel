@@ -41,7 +41,7 @@ Env::Env( void ) {
                 glm::vec3(0.0, 0.0, 0.0),
                 glm::vec3(0.0),
                 0.25,
-                0.01,
+                0.03,
                 (tMaterial){
                     glm::vec3(0),
                     glm::vec3(1.0),
