@@ -44,7 +44,7 @@ uniform vec3 cameraPos;
 
 const int 	maxRaySteps = 300;      // the maximum number of steps the raymarching algorithm is allowed to perform
 const float maxDist = 6.0;         // the maximum distance the ray can travel in world-space
-const float minDist = 0.0005;        // the distance from object threshold at which we consider a hit in raymarching
+const float minDist = 0.0001;        // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
@@ -61,7 +61,10 @@ vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
 float   ambientOcclusion( in vec3 hit, in vec3 normal );
 vec3    map( in vec3 p );
+float   fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
+float   fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 
+float   cloud( vec3 p );
 float   sphere( vec3 p, float s );
 float   cube( vec3 p );
 float   box( vec3 p, vec3 s );
@@ -70,6 +73,72 @@ float   torus( vec3 p );
 vec2    mandelbulb( vec3 p );
 vec2    mandelbox( vec3 p );
 float   ifs( vec3 p );
+
+float random (float x) {
+    return fract(sin(x) * 1e4);
+}
+
+float random(vec2 p) {
+    return fract(sin(dot(p.xy, vec2(12.9898,78.233)))*43758.5453123);
+}
+
+float random(vec3 p) {
+	// p = vec3( dot(p,vec3(127.1,311.7, 74.7)),
+	// 		  dot(p,vec3(269.5,183.3,246.1)),
+	// 		  dot(p,vec3(113.5,271.9,124.6)));
+	// return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+	return fract(sin(dot(p, vec3(113.5,271.9,124.6)))*43758.5453123);
+}
+
+float noise2d(in vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+// http://www.iquilezles.org/www/articles/morenoise/morenoise.htm
+vec4 noise3d(in vec3 x) {
+    vec3 p = floor(x);
+    vec3 w = fract(x);
+    
+    vec3 u = w*w*w*(w*(w*6.0-15.0)+10.0);
+    vec3 du = 30.0*w*w*(w*(w-2.0)+1.0);
+
+    float a = random(p + vec3(0.0,0.0,0.0));
+    float b = random(p + vec3(1.0,0.0,0.0));
+    float c = random(p + vec3(0.0,1.0,0.0));
+    float d = random(p + vec3(1.0,1.0,0.0));
+    float e = random(p + vec3(0.0,0.0,1.0));
+    float f = random(p + vec3(1.0,0.0,1.0));
+    float g = random(p + vec3(0.0,1.0,1.0));
+    float h = random(p + vec3(1.0,1.0,1.0));
+
+    float k0 = a;
+    float k1 = b - a;
+    float k2 = c - a;
+    float k3 = e - a;
+    float k4 = a - b - c + d;
+    float k5 = a - c - e + g;
+    float k6 = a - b - e + f;
+    float k7 = -a + b + c - d + e - f - g + h;
+
+    return vec4(-1.0+2.0*(k0 + k1*u.x + k2*u.y + k3*u.z + k4*u.x*u.y + k5*u.y*u.z + k6*u.z*u.x + k7*u.x*u.y*u.z), 
+                2.0 * du * vec3( k1 + k4*u.y + k6*u.z + k7*u.y*u.z,
+                                k2 + k5*u.z + k4*u.x + k7*u.z*u.x,
+                                k3 + k6*u.x + k5*u.y + k7*u.x*u.y ) );
+}
+
+float pattern(vec2 st, vec2 v, float t) {
+    vec2 p = floor(st+v);
+    return step(t, random(100.+p*.000001)+random(p.x)*0.5 );
+}
 
 void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
@@ -94,14 +163,43 @@ void    main() {
     vec3 normal = getNormal(hit);
     vec3 viewDir = normalize(cameraPos - hit);
 
+    // FragColor = vec4(vec3(1.0) * fbm2d(hit.xy+uTime*0.05, 0.5, 10.0*(sin(uTime)*0.5+0.5), 16, 4.0, 0.5), 1.0);
+    // FragColor = vec4(vec3(1.0) * fbm2d(TexCoords.xy, 0.5, 10.0, 16, 4.0, 0.5), 1.0);
+
+    // float r = fbm2d(TexCoords.xy + fbm2d(TexCoords.xy + uTime*0.1, 0.85, 4.0, 16, 4.0, 0.5), 0.5, 1.0, 16, 8.0, 0.65);
+    // FragColor = vec4(vec3(1.0) * pow(r, 10.0), 1.0);
+
+    // FragColor = vec4(vec3(1.0) * fbm3d(hit+uTime*0.015, 0.5, 10.0, 16, 4.0, 0.5), 1.0-fbm3d(hit+uTime*0.05, 0.5, 10.0, 16, 4.0, 0.5));
+    // FragColor = vec4(vec3(1.0) * fbm3d(vec3(TexCoords.xy, uTime*0.05), 0.5, 10.0, 10, 2.5, 0.5), 1.0);
+    FragColor = vec4(vec3(1.0) * fbm3d(hit+uTime*0.01, 0.5, 2.0, 16, 2.5, 0.5), 1.0);
+    return;
+
     // compute colors
     if (object[id].id == 0) { // mandelbox
         float it = res.z / float(maxRaySteps);
         vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
         vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false, false);
-        FragColor = vec4(light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
+        // NEW
+        vec2 st = hit.xy * 10;
+        vec2 grid = vec2(100.0, 50.0);
+        st *= grid;
+        vec2 ipos = floor(st);
+        vec2 fpos = fract(st);
+        vec2 vel = vec2(uTime * 0.3 * max(grid.x, grid.y));
+        vel *= vec2(-1.0, 0.0) * random(1.0 + ipos.y);
+        vec2 offset = vec2(0.1, 0.);
+        vec3 patt = vec3(0.);
+        patt.r = pattern(st + offset, vel, 0.5 + 0.1);
+        patt.g = pattern(st, vel, 0.5 + 0.1);
+        patt.b = pattern(st - offset, vel, 0.5 + 0.1);
+        patt *= step(0.2, fpos.y);
+        patt = (1.0-patt * 0.7) * vec3(1.0, 0.73, 0.3) * 1.5;
+
+        // float r = 2.0*fbm2d(hit.xy + fbm2d(hit.xy + uTime*0.01, 0.85, 3.0, 16, 3.0, 0.5), 0.85, 3.0, 16, 6.0, 0.5);
+
+        FragColor = vec4(patt * light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
         /* add fog if we're in cube */
-        float fog = res.x * 0.5 / object[id].scale * 6.0;
+        float fog = res.x * 0.5 / object[id].scale * 12.0;
         vec3 colorFog = fog * fog * vec3(0.9, 0.517, 0.345) * 0.5;
         float t = 0.0;
         for (int i = 0; i < 10; i++) {
@@ -165,7 +263,9 @@ vec3    map( in vec3 p ) {
         else if (object[i].id == 2)
             new = vec3(ifs(pos), 0, 2);
         else if (object[i].id == 3)
-            new = vec3(torus(pos), 0, 3);
+            new = vec3(cloud(pos), 0, 3);
+        else if (object[i].id == 4)
+            new = vec3(torus(pos), 0, 4);
 
         new.x *= object[i].scale;
         new.z = i;
@@ -174,9 +274,23 @@ vec3    map( in vec3 p ) {
     return res;
 }
 
+// vec4    raymarchVolume( in vec3 ro, in vec3 rd, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
+//     const int volumeSamples = 256;
+//     float stepSize = 0.01; // granularity
+// 	float t = 0.0;
+// 	for (int i = 0; i < volumeSamples; i++) {
+//         float sample = fbm3d(ro + rd * t, 0.5, 2.0, 16, 2.5, 0.5);
+// 		t += stepSize;
+//         if (t > maxDist || t > s) return vec4(0.0, 0.0, i, 0.0); // optimization and geometry occlusion
+// 		if (res.x < minDist) return vec4(t, res.y, i, res.z);
+// 	}
+// 	return vec4(0.0, 0.0, maxRaySteps, 0.0);
+// }
+
 /* return: distance, trap, ray_iterations, object_id */
 vec4    raymarch( in vec3 ro, in vec3 rd, float s ) {
 	float t = 0.0;
+    ro += rd * minDist * random(gl_FragCoord.xy/256);
 	for (int i = 0; i < maxRaySteps; i++) {
         vec3 res = map(ro + rd * t);
 		t += res.x;
@@ -187,7 +301,7 @@ vec4    raymarch( in vec3 ro, in vec3 rd, float s ) {
 }
 
 vec3    getNormal( in vec3 p ) {
-    const vec2 eps = vec2(minDist*0.1, 0.0);
+    const vec2 eps = vec2(minDist, 0.0);
     return normalize(vec3(map(p + eps.xyy).x - map(p - eps.xyy).x,
                           map(p + eps.yxy).x - map(p - eps.yxy).x,
                           map(p + eps.yyx).x - map(p - eps.yyx).x));
@@ -236,8 +350,36 @@ float   ambientOcclusion( in vec3 hit, in vec3 normal ) {
     return 1.0 - clamp(occ * OCCLUSION_STRENGTH, 0.0, 1.0);
 }
 
+float fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain) {
+    float value = 0.0;
+    st *= frequency;
+    for (int i = 0; i < octaves; i++) {
+        value += amplitude * noise2d(st);
+        st *= lacunarity;
+        amplitude *= gain;
+    }
+    return value;
+}
+
+float fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain) {
+    float value = 0.0;
+    st *= frequency;
+    for (int i = 0; i < octaves; i++) {
+        value += amplitude * noise3d(st).x;
+        st *= lacunarity;
+        amplitude *= gain;
+    }
+    return value;
+}
+
+// fbm(pos, 0.5, 1.0, 8, 3.0, 0.5);
+
 /*  Distance Estimators
 */
+
+float   cloud( vec3 p ) {
+    return sphere(p, 10.0);
+}
 
 float   sphere( vec3 p, float s ) {
     return length(p) - s;
@@ -302,7 +444,7 @@ vec2   mandelbox( vec3 p ) {
 
     vec4 z = vec4(p.xyz * 6.0, 1.0), p0 = vec4(p.xyz * 6.0, 1.0);
     float t0 = 1.0;
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 13; i++) {
         z.xyz = clamp(z.xyz, -1.0, 1.0) * 2.0 - z.xyz;  // box fold
         float r2 = dot(z.xyz, z.xyz);
         z.xyzw *= clamp(max(minRadius2 / r2, minRadius2), 0.0, 1.0);  // sphere fold
@@ -331,4 +473,8 @@ float   ifs(vec3 p) {
     }
     // return sphere(p, 2.0 * t);
     return smoothBox(p, vec3(0.975 * t), 0.1 * t);
+}
+
+float   volumeFog(vec3 p) {
+    return 1.0;
 }

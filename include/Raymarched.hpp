@@ -20,6 +20,7 @@ enum class eRaymarchObject {
     mandelbox,
     mandelbulb,
     ifs,
+    cloud,
     torus
 };
 
