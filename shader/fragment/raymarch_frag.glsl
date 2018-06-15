@@ -142,13 +142,14 @@ float pattern(vec2 st, vec2 v, float t) {
 // NEW
 
 float hash( float n ) {
-    return fract(sin(n)*43758.5453);
+    return fract(sin(n)*43758.5453123);
 }
 
 float noise( in vec3 x ) {
     vec3 p = floor(x);
     vec3 f = fract(x);
-    f = f*f*(3.0-2.0*f);
+    // f = f*f*(3.0-2.0*f);
+    f = f*f*f*(f*(f*6.0-15.0)+10.0);
     float n = p.x + p.y*57.0 + 113.0*p.z;
     float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
                         mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
@@ -163,29 +164,29 @@ mat3 m = mat3( 0.00,  0.80,  0.60,
 
 float fbm( vec3 p ) {
     float f;
-    f  = 0.5000*noise(p)*0.5; p = m*p*2.02;
-    f += 0.2500*noise(p)*0.5; p = m*p*2.03;
-    f += 0.1250*noise(p)*0.5;
+    f  = 0.5000*noise(p); p = m*p*2.02;
+    f += 0.2500*noise(p); p = m*p*2.03;
+    f += 0.1250*noise(p);
     return f;
 }
 
 vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
-    const int maxVolumeSamples = 32; // max steps in sphere
-    float stepSize = 1.0 / float(maxVolumeSamples); // granularity
-	float t = bounds.x;// + stepSize;
+    const int maxVolumeSamples = 100; // max steps in sphere
+    float stepSize = 2.0 / float(maxVolumeSamples); // granularity
+	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
     vec4 sum = vec4(0.0);
 	for (int i = 0; i < maxVolumeSamples; i++) {
-        if (sum.a > 0.99) break;
-        if (t > bounds.y) break; // if we go out of sphere
+        if (sum.a > 1.0 || t > bounds.y) break;
         if (t > maxDist || t > s) break; // optimization and geometry occlusion
         vec3 pos = ro + rd * t;
-        float se = fbm3d(pos, 1.5, 2.0, 10, 2.02, 0.5);
-        // float se = fbm(pos);
-
-        vec4 col = vec4(se, se, se, 1.0);
-        col.a *= 0.05;
+        float se = fbm(pos*3.0);
+        // TMP
+        se = 2.0 / exp(se * 8.5);
+        vec4 col = vec4(vec3(0.75+se), se);
+        // vec4 col = vec4(se);
+        col.a *= 0.4;
         col.rgb *= col.a;
-        sum = sum + col * (1.0 - sum.a);
+        sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);
 		t += stepSize;
 	}
 	return sum;
@@ -565,8 +566,4 @@ float   ifs(vec3 p) {
     }
     // return sphere(p, 2.0 * t);
     return smoothBox(p, vec3(0.975 * t), 0.1 * t);
-}
-
-float   volumeFog(vec3 p) {
-    return 1.0;
 }

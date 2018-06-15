@@ -3,6 +3,7 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
+        // this->initGlfwWindow(480, 480);
         this->initGlfwWindow(720, 480);
         // this->initGlfwWindow(1280, 720);
         // this->initGlfwWindow(2560, 1200);
@@ -94,7 +95,7 @@ Env::Env( void ) {
             // }
             (tObject){
                 eRaymarchObject::cloud,
-                glm::vec3(0.0, 0.5, 0.0),
+                glm::vec3(0.0, 0.0, 0.0),
                 glm::vec3(0.0),
                 0.1,
                 1.0,
