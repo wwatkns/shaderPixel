@@ -65,9 +65,7 @@ vec3    map( in vec3 p );
 float   fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 float   fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 
-vec2    raySphere( in vec3 ro, in vec3 rd, in vec4 sph );
-vec2    rayDenseSphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer );
-float   cloud( vec3 p );
+vec2    raySphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer );
 float   sphere( vec3 p, float s );
 float   cube( vec3 p );
 float   box( vec3 p, vec3 s );
@@ -140,7 +138,6 @@ float pattern(vec2 st, vec2 v, float t) {
 }
 
 // NEW
-
 float hash( float n ) {
     return fract(sin(n)*43758.5453123);
 }
@@ -148,8 +145,8 @@ float hash( float n ) {
 float noise( in vec3 x ) {
     vec3 p = floor(x);
     vec3 f = fract(x);
-    // f = f*f*(3.0-2.0*f);
-    f = f*f*f*(f*(f*6.0-15.0)+10.0);
+    f = f*f*(3.0-2.0*f);
+    // f = f*f*f*(f*(f*6.0-15.0)+10.0);
     float n = p.x + p.y*57.0 + 113.0*p.z;
     float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
                         mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
@@ -170,23 +167,48 @@ float fbm( vec3 p ) {
     return f;
 }
 
-vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
+// vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
+//     bounds *= radius;
+//     const int maxVolumeSamples = 100; // max steps in sphere
+//     float stepSize = 2.0 * radius / float(maxVolumeSamples); // granularity
+// 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
+//     vec4 sum = vec4(0.0);
+// 	for (int i = 0; i < maxVolumeSamples; i++) {
+//         if (sum.a > 1.0 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
+//         vec3 pos = ro + rd * t;
+//         float se = fbm(pos * 2.0);
+//         se = max(se, 0.03); // control density
+//         se = 1.0 / exp(se * 8.5);
+//         vec4 col = vec4(vec3(0.15+5.0*se), se);
+//         col.a *= 0.5;
+//         col.rgb *= col.a;
+//         sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);
+// 		t += stepSize;
+// 	}
+// 	return sum;
+// }
+
+vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
+    bounds *= radius;
     const int maxVolumeSamples = 100; // max steps in sphere
-    float stepSize = 2.0 / float(maxVolumeSamples); // granularity
+    float stepSize = 2.0 * radius / float(maxVolumeSamples); // granularity
 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
     vec4 sum = vec4(0.0);
 	for (int i = 0; i < maxVolumeSamples; i++) {
-        if (sum.a > 1.0 || t > bounds.y) break;
-        if (t > maxDist || t > s) break; // optimization and geometry occlusion
+        if (sum.a > 1.0 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
         vec3 pos = ro + rd * t;
-        float se = fbm(pos*3.0);
-        // TMP
-        se = 2.0 / exp(se * 8.5);
-        vec4 col = vec4(vec3(0.75+se), se);
-        // vec4 col = vec4(se);
-        col.a *= 0.4;
-        col.rgb *= col.a;
-        sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);
+        float se = fbm(pos * 2.0);
+        se = 2.0 / exp(se * 10.0);
+        vec4 col = vec4(vec3(se*se*se*20.0, se*se*se*10.0, se*0.5), se);
+        // float se = fbm3d(pos, 0.5, 2.0, 10, 2.2, 0.65);
+    
+        // se = 1.0 / exp(se * 5.0);
+
+        // vec4 col = vec4(vec3(se*se*se*1.0, se*se*0.5, se*se*0.25)*0.05, se);
+		col.a *= 0.5;
+		col.rgb *= col.a;
+        sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);  
+
 		t += stepSize;
 	}
 	return sum;
@@ -220,10 +242,10 @@ void    main() {
     // FragColor = vec4(vec3(1.0) * fbm3d(hit+uTime*0.01, 0.5, 2.0, 16, 2.5, 0.5), 1.0);
     
     // NEW
-    vec2 bounds = rayDenseSphere(cameraPos, dir, vec4(0.0, 0.0, 0.0, 1.0), depth); // doesn't work with radius != 1
+    vec4 sphere = vec4(0.0, 0.0, 0.0, 2.0);
+    vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
     if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
-
-    vec4 color = raymarchVolume(cameraPos, dir, bounds, depth);
+    vec4 color = raymarchVolume(cameraPos, dir, bounds, sphere.w, depth);
     FragColor = color;
 
     return;
@@ -316,8 +338,6 @@ vec3    map( in vec3 p ) {
             new = vec3(mandelbulb(pos), 1);
         else if (object[i].id == 2)
             new = vec3(ifs(pos), 0, 2);
-        else if (object[i].id == 3)
-            new = vec3(cloud(pos), 0, 3);
         else if (object[i].id == 4)
             new = vec3(torus(pos), 0, 4);
 
@@ -406,73 +426,31 @@ float fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, 
     float value = 0.0;
     st *= frequency;
     for (int i = 0; i < octaves; i++) {
-        // value += amplitude * noise3d(st).x;
-        value += amplitude * noise(st);
+        value += amplitude * noise3d(st).x;
         st *= lacunarity;
         amplitude *= gain;
     }
     return value;
 }
 
-// fbm(pos, 0.5, 1.0, 8, 3.0, 0.5);
-
 
 // returns the min/max dist if intersecting with the sphere (sph is a vec4 with xyz being pos and w the size)
-vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph ) { // only the shell
-	vec3 oc = ro - sph.xyz;
-	float b = dot(oc, rd);
-	float c = dot(oc, oc) - sph.w*sph.w;
-	float h = b*b - c;
-	if (h < 0.0) return vec2(-1.0);
-	h = sqrt(h);
-	return vec2(-b-h, -b+h);
-}
-
-// float rayDenseSphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
-//     float ndbuffer = dbuffer/sph.w;
-//     vec3  rc = (ro - sph.xyz)/sph.w;
-	
-//     float b = dot(rd,rc);
-//     float c = dot(rc,rc) - 1.0;
-//     float h = b*b - c;
-//     if( h<0.0 ) return 0.0;
-//     h = sqrt( h );
-//     float t1 = -b - h;
-//     float t2 = -b + h;
-
-//     if( t2<0.0 || t1>ndbuffer ) return 0.0;
-//     t1 = max( t1, 0.0 );
-//     t2 = min( t2, ndbuffer );
-
-//     float i1 = -(c*t1 + b*t1*t1 + t1*t1*t1/3.0);
-//     float i2 = -(c*t2 + b*t2*t2 + t2*t2*t2/3.0);
-//     return (i2-i1)*(3.0/4.0);
-// }
-
-vec2 rayDenseSphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
-    float ndbuffer = dbuffer/sph.w;
-    vec3  rc = (ro - sph.xyz)/sph.w;
-	
-    float b = dot(rd,rc);
-    float c = dot(rc,rc) - 1.0;
+vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
+    float ndbuffer = dbuffer / sph.w;
+    vec3  rc = (ro - sph.xyz) / sph.w;
+    float b = dot(rd, rc);
+    float c = dot(rc, rc) - 1.0;
     float h = b*b - c;
     if (h < 0.0) return vec2(-1.0);
     h = sqrt(h);
     float t1 = -b - h;
     float t2 = -b + h;
-
     if (t2 < 0.0 || t1 > ndbuffer) return vec2(-1.0);
-    t1 = max(t1, 0.0);
-    t2 = min(t2, ndbuffer);
-    return vec2(t1, t2);
+    return vec2(max(t1, 0.0), min(t2, ndbuffer));
 }
 
 /*  Distance Estimators
 */
-
-float   cloud( vec3 p ) {
-    return sphere(p, 20.0);
-}
 
 float   sphere( vec3 p, float s ) {
     return length(p) - s;
