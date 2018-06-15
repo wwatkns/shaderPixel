@@ -66,6 +66,7 @@ float   fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves
 float   fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 
 vec2    raySphere( in vec3 ro, in vec3 rd, in vec4 sph );
+vec2    rayDenseSphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer );
 float   cloud( vec3 p );
 float   sphere( vec3 p, float s );
 float   cube( vec3 p );
@@ -77,7 +78,7 @@ vec2    mandelbox( vec3 p );
 float   ifs( vec3 p );
 
 float random (float x) {
-    return fract(sin(x) * 1e4);
+    return fract(sin(x)*43758.5453123);
 }
 
 float random(vec2 p) {
@@ -139,20 +140,55 @@ float pattern(vec2 st, vec2 v, float t) {
 }
 
 // NEW
-float    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
+
+float hash( float n ) {
+    return fract(sin(n)*43758.5453);
+}
+
+float noise( in vec3 x ) {
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = f*f*(3.0-2.0*f);
+    float n = p.x + p.y*57.0 + 113.0*p.z;
+    float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
+                        mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
+                    mix(mix( hash(n+113.0), hash(n+114.0),f.x),
+                        mix( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
+    return res;
+}
+
+mat3 m = mat3( 0.00,  0.80,  0.60,
+              -0.80,  0.36, -0.48,
+              -0.60, -0.48,  0.64 );
+
+float fbm( vec3 p ) {
+    float f;
+    f  = 0.5000*noise(p)*0.5; p = m*p*2.02;
+    f += 0.2500*noise(p)*0.5; p = m*p*2.03;
+    f += 0.1250*noise(p)*0.5;
+    return f;
+}
+
+vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
     const int maxVolumeSamples = 32; // max steps in sphere
     float stepSize = 1.0 / float(maxVolumeSamples); // granularity
-	float t = bounds.x + stepSize;
-    float acc = 0.0;
+	float t = bounds.x;// + stepSize;
+    vec4 sum = vec4(0.0);
 	for (int i = 0; i < maxVolumeSamples; i++) {
-        vec3 pos = ro + rd * t;
-        float se = fbm3d(pos, 1.5, 2.0, 16, 2.5, 0.5);
-        acc += se * stepSize;
+        if (sum.a > 0.99) break;
         if (t > bounds.y) break; // if we go out of sphere
         if (t > maxDist || t > s) break; // optimization and geometry occlusion
+        vec3 pos = ro + rd * t;
+        float se = fbm3d(pos, 1.5, 2.0, 10, 2.02, 0.5);
+        // float se = fbm(pos);
+
+        vec4 col = vec4(se, se, se, 1.0);
+        col.a *= 0.05;
+        col.rgb *= col.a;
+        sum = sum + col * (1.0 - sum.a);
 		t += stepSize;
 	}
-	return acc;
+	return sum;
 }
 
 void    main() {
@@ -183,35 +219,12 @@ void    main() {
     // FragColor = vec4(vec3(1.0) * fbm3d(hit+uTime*0.01, 0.5, 2.0, 16, 2.5, 0.5), 1.0);
     
     // NEW
-    vec2 bounds = raySphere(cameraPos, dir, vec4(0.0, 0.0, 0.0, 1.0));
-    float res = raymarchVolume(cameraPos, dir, bounds, depth);
-    res = 1.0 / exp(res * 0.5);
-    vec3 color = vec3(1.0) * (1.0 - res) * 1.0 / float(32);
-    FragColor = vec4(color, res);
-	// float t = 0.0;
-    // float acc = 0.0;
-	// for (int i = 0; i < maxRaySteps; i++) {
-    //     float res = map(cameraPos + dir * t).x;
-	// 	t += res;
-    //     if (t > maxDist || t > depth) {
-    //         FragColor = vec4(0.0);
-    //         return;
-    //     }
-	// 	if (res < minDist) {
-    //         // acc = raymarchVolume(cameraPos, dir, t, depth);
-    //         acc = raymarchVolume(cameraPos+dir*t, dir, t, depth);
-    //         acc = 1.0 / exp(acc * 0.95);
-    //         vec3 color = vec3(1.0) * (1.0 - acc) + vec3(1.0) * acc;
-    //         FragColor = vec4(color, acc * 0.5);
-    //         return;
-    //     }
-	// }
-    // // acc = raymarchVolume(cameraPos, dir, t, depth);
-    // acc = raymarchVolume(cameraPos+dir*t, dir, t, depth);
-    // acc = 1.0 / exp(acc * 0.5);
-    // vec3 color = vec3(1.0) * (1.0 - acc) + vec3(1.0) * acc;
-    // FragColor = vec4(color, acc * 0.5);
-    // END
+    vec2 bounds = rayDenseSphere(cameraPos, dir, vec4(0.0, 0.0, 0.0, 1.0), depth); // doesn't work with radius != 1
+    if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
+
+    vec4 color = raymarchVolume(cameraPos, dir, bounds, depth);
+    FragColor = color;
+
     return;
 
     // compute colors
@@ -392,7 +405,8 @@ float fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, 
     float value = 0.0;
     st *= frequency;
     for (int i = 0; i < octaves; i++) {
-        value += amplitude * noise3d(st).x;
+        // value += amplitude * noise3d(st).x;
+        value += amplitude * noise(st);
         st *= lacunarity;
         amplitude *= gain;
     }
@@ -403,7 +417,7 @@ float fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, 
 
 
 // returns the min/max dist if intersecting with the sphere (sph is a vec4 with xyz being pos and w the size)
-vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph ) {
+vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph ) { // only the shell
 	vec3 oc = ro - sph.xyz;
 	float b = dot(oc, rd);
 	float c = dot(oc, oc) - sph.w*sph.w;
@@ -411,6 +425,45 @@ vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph ) {
 	if (h < 0.0) return vec2(-1.0);
 	h = sqrt(h);
 	return vec2(-b-h, -b+h);
+}
+
+// float rayDenseSphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
+//     float ndbuffer = dbuffer/sph.w;
+//     vec3  rc = (ro - sph.xyz)/sph.w;
+	
+//     float b = dot(rd,rc);
+//     float c = dot(rc,rc) - 1.0;
+//     float h = b*b - c;
+//     if( h<0.0 ) return 0.0;
+//     h = sqrt( h );
+//     float t1 = -b - h;
+//     float t2 = -b + h;
+
+//     if( t2<0.0 || t1>ndbuffer ) return 0.0;
+//     t1 = max( t1, 0.0 );
+//     t2 = min( t2, ndbuffer );
+
+//     float i1 = -(c*t1 + b*t1*t1 + t1*t1*t1/3.0);
+//     float i2 = -(c*t2 + b*t2*t2 + t2*t2*t2/3.0);
+//     return (i2-i1)*(3.0/4.0);
+// }
+
+vec2 rayDenseSphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
+    float ndbuffer = dbuffer/sph.w;
+    vec3  rc = (ro - sph.xyz)/sph.w;
+	
+    float b = dot(rd,rc);
+    float c = dot(rc,rc) - 1.0;
+    float h = b*b - c;
+    if (h < 0.0) return vec2(-1.0);
+    h = sqrt(h);
+    float t1 = -b - h;
+    float t2 = -b + h;
+
+    if (t2 < 0.0 || t1 > ndbuffer) return vec2(-1.0);
+    t1 = max(t1, 0.0);
+    t2 = min(t2, ndbuffer);
+    return vec2(t1, t2);
 }
 
 /*  Distance Estimators
