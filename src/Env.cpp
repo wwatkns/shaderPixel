@@ -97,13 +97,13 @@ Env::Env( void ) {
                 eRaymarchObject::cloud,
                 glm::vec3(0.0, 0.0, 0.0),
                 glm::vec3(0.0),
-                0.1,
+                1.0,
                 1.0,
                 (tMaterial){
                     glm::vec3(0.0),
                     glm::vec3(1.0),
-                    glm::vec3(1.0, 1.0, 1.0),
-                    128.0,
+                    glm::vec3(1.0),
+                    2048.0,
                     1.0
                 }
             }
@@ -111,7 +111,7 @@ Env::Env( void ) {
         this->lights = {{
             new Light(
                 glm::vec3(10, 10, 6),
-                glm::vec3(0.77f, 0.88f, 1.0f) * 0.1f,
+                glm::vec3(0.77f, 0.88f, 1.0f) * 0.05f,
                 glm::vec3(1.0f, 0.964f, 0.77f),
                 glm::vec3(1.0f, 1.0f, 1.0f),
                 eLightType::directional

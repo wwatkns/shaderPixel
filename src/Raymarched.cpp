@@ -1,9 +1,18 @@
 #include "Raymarched.hpp"
 #include "glm/ext.hpp"
+#include "Model.hpp"
 
 Raymarched::Raymarched( const std::vector<tObject>& objects ) : objects(objects) {
     this->createRenderQuad();
     this->setup(GL_STATIC_DRAW);
+    this->skyboxId = loadCubemap(std::vector<std::string>{{
+        "./resource/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
+        "./resource/ThickCloudsWater/ThickCloudsWaterRight2048.png",
+        "./resource/ThickCloudsWater/ThickCloudsWaterUp2048.png",
+        "./resource/ThickCloudsWater/ThickCloudsWaterDown2048.png",
+        "./resource/ThickCloudsWater/ThickCloudsWaterFront2048.png",
+        "./resource/ThickCloudsWater/ThickCloudsWaterBack2048.png",
+    }});
 }
 
 Raymarched::~Raymarched( void ) {
@@ -74,6 +83,11 @@ void    Raymarched::render( Shader shader ) {
         shader.setFloatUniformValue(name+"scale", this->objects[i].scale);
         shader.setMat4UniformValue(name+"invMat", glm::inverse(mat));
     }
+    
+    glActiveTexture(GL_TEXTURE1);
+    shader.setIntUniformValue("skybox", 1);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->skyboxId);
+
     /* render */
     glBindVertexArray(this->vao);
     glDrawElements(GL_TRIANGLES, this->indices.size(), GL_UNSIGNED_INT, 0);

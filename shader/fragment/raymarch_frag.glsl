@@ -33,6 +33,7 @@ in float Far;
 
 // uniform sampler2D noise;
 uniform sampler2D depthBuffer;
+uniform samplerCube skybox;
 uniform sObject object[MAX_OBJECTS];
 uniform int nObjects;
 
@@ -138,10 +139,6 @@ float pattern(vec2 st, vec2 v, float t) {
     return step(t, random(100.+p*.000001)+random(p.x)*0.5 );
 }
 
-// NEW
-// float hash( float n ) {
-//     return fract(sin(n)*43758.5453123);
-// }
 highp float hash( float n ) {
     return fract(sin(mod(n,3.14))*43758.5453);
 }
@@ -179,47 +176,50 @@ float fbm( vec3 p ) {
     return f;
 }
 
+// cloud
 // vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
 //     bounds *= radius;
-//     const int maxVolumeSamples = 100; // max steps in sphere
+//     const int maxVolumeSamples = 20; // max steps in sphere
 //     float stepSize = 2.0 * radius / float(maxVolumeSamples); // granularity
 // 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
 //     vec4 sum = vec4(0.0);
 // 	for (int i = 0; i < maxVolumeSamples; i++) {
-//         if (sum.a > 1.0 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
+//         if (sum.a > 0.99 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
 //         vec3 pos = ro + rd * t;
-//         float se = fbm(pos * 2.0);
-//         se = max(se, 0.03); // control density
-//         se = 1.0 / exp(se * 8.5);
-//         vec4 col = vec4(vec3(0.15+5.0*se), se);
-//         col.a *= 0.5;
-//         col.rgb *= col.a;
+//         float se = fbm3d(pos, 0.5, 2.0, 5, 2.1, 0.5);
+//         se = 1.0 / exp(se * 7.0);
+//         se *= 1.0 - smoothstep(0.75 * radius, radius, length(pos)); // edge so that we have no interaction with sphere bounds
+//         vec4 col = vec4(vec3(1.0-se), se);
+// 		col.a *= 0.5;
+// 		col.rgb *= col.a;
 //         sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);
 // 		t += stepSize;
 // 	}
 // 	return sum;
 // }
 
-
-// beautiful sphere
-vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
+// marble
+vec4    raymarchVolumeMarble( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) {
     bounds *= radius;
-    const int maxVolumeSamples = 40; // max steps in sphere
-    float stepSize = 2.0 * radius / float(maxVolumeSamples); // granularity
+    const int maxVolumeSamples = 256; // max steps in sphere
+    float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
     vec4 sum = vec4(0.0);
 	for (int i = 0; i < maxVolumeSamples; i++) {
-        if (sum.a > 1.0 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
+        if (sum.a > 0.99 || t > bounds.y || t > s) break; // optimization and geometry occlusion
         vec3 pos = ro + rd * t;
-
-        float se = fbm3d(uTime*0.05 + pos * fbm3d(pos, 0.5, 4.0, 3, 1.9, 0.5), 0.5, 3.0, 6, 3.0, 0.45);
-        se = 1.5 / exp(se * 6.0);
-        vec4 col = vec4(vec3(se*se*se*30.0, se*se*se*se*10.0, se*se), se*0.001);
-		col.a *= 0.5;
+        float se = fbm3d(42.0 + pos * fbm3d(uTime*0.005 + pos, 0.5, 3.0, 4, 1.9, 0.5), 0.5, 3.0, 5, 3.0, 0.45);
+        se = 1.0 / exp(se * 5.0);
+        se *= 1.0 - smoothstep(0.9 * radius, radius, length(pos)); // prevent hard cut at sphere's bound
+        float v = exp(se*45.0)*0.0001;
+        vec4 col = vec4(vec3(se*se+v, se*se*v, se*se), se);
+		col.a *= 0.75;
 		col.rgb *= col.a;
-        sum = sum + col * (100.0 - sum.a) * (stepSize * 100.0);
+        col = clamp(col, 0.0, 1.0);
+        sum = 0.95*sum + col * (2.0 - sum.a) * (stepSize * 100.0);
 		t += stepSize;
 	}
+    sum.rgb *= 3.5;
 	return sum;
 }
 
@@ -255,15 +255,34 @@ void    main() {
     // FragColor = vec4(vec3(1.0) * fbm(hit*2.0), 1.0);
     // return;
     
-    // NEW
-    vec4 sphere = vec4(0.0, 0.0, 0.0, 1.5);
+    // NON-VOLUMETRIC (MARBLE)
+    vec4 sphere = vec4(0.0, 0.0, 0.0, 1.5 );
     vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
-
     if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
-    vec4 color = raymarchVolume(cameraPos, dir, bounds, sphere.w, depth);
-    FragColor = color;
 
+    vec3 hit = cameraPos + dir * bounds.x * sphere.w;
+    vec3 normal = normalize(hit - sphere.xyz);
+    vec3 viewDir = -dir;
+
+    vec4 color = raymarchVolumeMarble(cameraPos, dir, bounds, sphere.w, depth);
+    color.xyz = clamp(vec3(0.01) + color.xyz, 0.0, 1.0);
+    vec3 light = computeDirectionalLight(0, hit, normal, viewDir, color.xyz, false, false);
+    // fresnel specular reflection
+    if (bounds.x > 0.0) {
+        vec3 spec = pow(texture(skybox, reflect(dir, hit)).rgb, vec3(2.2));
+        float f = 1.0 - pow(1.0 - clamp(-dot(hit, dir), 0.0, 1.0), 4.0 / sphere.w);
+        light = mix(spec, light, f);
+    }
+    FragColor = vec4(light, color.w + 0.8);
     return;
+
+    /// VOLUMETRIC
+    // vec4 sphere = vec4(0.0, 0.0, 0.0, 1.5);
+    // vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
+    // if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
+    // vec4 color = raymarchVolume(cameraPos, dir, bounds, sphere.w, depth);
+    // FragColor = color;
+    // return;
 
     // compute colors
     // if (object[id].id == 0) { // mandelbox
@@ -353,6 +372,8 @@ vec3    map( in vec3 p ) {
             new = vec3(mandelbulb(pos), 1);
         else if (object[i].id == 2)
             new = vec3(ifs(pos), 0, 2);
+        else if (object[i].id == 3)
+            new = vec3(sphere(pos, 1.0), 0, 3); // WIP
         else if (object[i].id == 4)
             new = vec3(torus(pos), 0, 4);
 

@@ -46,6 +46,7 @@ public:
 
     void            render( Shader shader );
     float           computeSpeedModifier( const glm::vec3& cameraPos );
+    unsigned int                skyboxId;
 
 private:
     std::vector<tObject>        objects;
