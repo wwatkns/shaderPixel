@@ -201,7 +201,7 @@ float fbm( vec3 p ) {
 // marble
 vec4    raymarchVolumeMarble( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) {
     bounds *= radius;
-    const int maxVolumeSamples = 256; // max steps in sphere
+    const int maxVolumeSamples = 200; // max steps in sphere
     float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
     vec4 sum = vec4(0.0);
@@ -211,12 +211,12 @@ vec4    raymarchVolumeMarble( in vec3 ro, in vec3 rd, in vec2 bounds, float radi
         float se = fbm3d(42.0 + pos * fbm3d(uTime*0.005 + pos, 0.5, 3.0, 4, 1.9, 0.5), 0.5, 3.0, 5, 3.0, 0.45);
         se = 1.0 / exp(se * 5.0);
         se *= 1.0 - smoothstep(0.9 * radius, radius, length(pos)); // prevent hard cut at sphere's bound
-        float v = exp(se*45.0)*0.0001;
+        float v = exp(se*42.0)*0.0001;
         vec4 col = vec4(vec3(se*se+v, se*se*v, se*se), se);
 		col.a *= 0.75;
 		col.rgb *= col.a;
         col = clamp(col, 0.0, 1.0);
-        sum = 0.95*sum + col * (2.0 - sum.a) * (stepSize * 100.0);
+        sum = sum + col * (2.0 - sum.a) * (stepSize * 100.0);
 		t += stepSize;
 	}
     sum.rgb *= 3.5;
