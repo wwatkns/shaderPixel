@@ -260,12 +260,12 @@ void    main() {
     vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
     if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
 
-    vec3 hit = cameraPos + dir * bounds.x * sphere.w;
-    vec3 normal = normalize(hit - sphere.xyz);
+    vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
+    vec3 normal = normalize(hit);
     vec3 viewDir = -dir;
 
-    vec4 color = raymarchVolumeMarble(cameraPos, dir, bounds, sphere.w, depth);
-    color.xyz = clamp(vec3(0.01) + color.xyz, 0.0, 1.0);
+    vec4 color = raymarchVolumeMarble(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
+    color.xyz = clamp(vec3(0.0, 0.0, 0.03) + color.xyz, 0.0, 1.0);
     vec3 light = computeDirectionalLight(0, hit, normal, viewDir, color.xyz, false, false);
     // fresnel specular reflection
     if (bounds.x > 0.0) {
