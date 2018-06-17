@@ -31,6 +31,7 @@ in float Far;
 
 #define MAX_OBJECTS 8
 
+// uniform sampler2D noise;
 uniform sampler2D depthBuffer;
 uniform sObject object[MAX_OBJECTS];
 uniform int nObjects;
@@ -76,15 +77,15 @@ vec2    mandelbox( vec3 p );
 float   ifs( vec3 p );
 
 float random (float x) {
-    return fract(sin(x)*43758.5453123);
+    return fract(sin(mod(x, 3.14))*43758.5453);
 }
 
 float random(vec2 p) {
-    return fract(sin(dot(p.xy, vec2(12.9898,78.233)))*43758.5453123);
+    return fract(sin(mod(dot(p, vec2(12.9898,78.233)), 3.14))*43758.5453);
 }
 
 float random(vec3 p) { // find better random ?
-	return fract(sin(dot(p, vec3(113.5,271.9,124.6)))*43758.5453123);
+	return fract(sin( mod(dot(p, vec3(113.5,271.9,124.6)), 3.14) )*43758.5453);
 }
 
 float noise2d(in vec2 st) {
@@ -138,15 +139,17 @@ float pattern(vec2 st, vec2 v, float t) {
 }
 
 // NEW
-float hash( float n ) {
-    return fract(sin(n)*43758.5453123);
+// float hash( float n ) {
+//     return fract(sin(n)*43758.5453123);
+// }
+highp float hash( float n ) {
+    return fract(sin(mod(n,3.14))*43758.5453);
 }
 
 float noise( in vec3 x ) {
     vec3 p = floor(x);
     vec3 f = fract(x);
     f = f*f*(3.0-2.0*f);
-    // f = f*f*f*(f*(f*6.0-15.0)+10.0);
     float n = p.x + p.y*57.0 + 113.0*p.z;
     float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
                         mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
@@ -154,6 +157,15 @@ float noise( in vec3 x ) {
                         mix( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
     return res;
 }
+
+// float noise( vec3 x ) { // iq's 3D noise
+//     vec3 f = fract(x);
+//     vec3 p = x - f;
+//     f = f*f*(3.0 - 2.0*f);
+//     vec2 uv = (p.xy + vec2(37.0, 17.0) * p.z) + f.xy;
+//     vec2 rg = texture(noise, (uv + 0.5)/256.0, -100.0).rg;
+//     return mix(rg.y, rg.x, f.z);
+// }
 
 mat3 m = mat3( 0.00,  0.80,  0.60,
               -0.80,  0.36, -0.48,
@@ -188,27 +200,24 @@ float fbm( vec3 p ) {
 // 	return sum;
 // }
 
+
+// beautiful sphere
 vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) { // same as raymarch, but we accumulate value when inside and sample the occlusion
     bounds *= radius;
-    const int maxVolumeSamples = 100; // max steps in sphere
+    const int maxVolumeSamples = 40; // max steps in sphere
     float stepSize = 2.0 * radius / float(maxVolumeSamples); // granularity
 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
     vec4 sum = vec4(0.0);
 	for (int i = 0; i < maxVolumeSamples; i++) {
         if (sum.a > 1.0 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
         vec3 pos = ro + rd * t;
-        float se = fbm(pos * 2.0);
-        se = 2.0 / exp(se * 10.0);
-        vec4 col = vec4(vec3(se*se*se*20.0, se*se*se*10.0, se*0.5), se);
-        // float se = fbm3d(pos, 0.5, 2.0, 10, 2.2, 0.65);
-    
-        // se = 1.0 / exp(se * 5.0);
 
-        // vec4 col = vec4(vec3(se*se*se*1.0, se*se*0.5, se*se*0.25)*0.05, se);
+        float se = fbm3d(uTime*0.05 + pos * fbm3d(pos, 0.5, 4.0, 3, 1.9, 0.5), 0.5, 3.0, 6, 3.0, 0.45);
+        se = 1.5 / exp(se * 6.0);
+        vec4 col = vec4(vec3(se*se*se*30.0, se*se*se*se*10.0, se*se), se*0.001);
 		col.a *= 0.5;
 		col.rgb *= col.a;
-        sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);  
-
+        sum = sum + col * (100.0 - sum.a) * (stepSize * 100.0);
 		t += stepSize;
 	}
 	return sum;
@@ -237,13 +246,19 @@ void    main() {
     // vec3 normal = getNormal(hit);
     // vec3 viewDir = normalize(cameraPos - hit);
 
+    // vec2 bounds = raySphere(cameraPos, dir, vec4(0.0, 0.0, 0.0, 1.0), depth);
+    // vec3 hit = cameraPos + dir * bounds.x;
     // FragColor = vec4(vec3(1.0) * fbm3d(hit+uTime*0.015, 0.5, 10.0, 16, 4.0, 0.5), 1.0-fbm3d(hit+uTime*0.05, 0.5, 10.0, 16, 4.0, 0.5));
     // FragColor = vec4(vec3(1.0) * fbm3d(vec3(TexCoords.xy, uTime*0.05), 0.5, 10.0, 10, 2.5, 0.5), 1.0);
-    // FragColor = vec4(vec3(1.0) * fbm3d(hit+uTime*0.01, 0.5, 2.0, 16, 2.5, 0.5), 1.0);
+    // vec3 pos = vec3(FragPos.xy / vec2(1.0, 1.5), 0.0);
+    // FragColor = vec4(vec3(1.0) * fbm3d(pos+uTime*0.1, 0.5, 2.0, 16, 2.5, 0.5), 1.0);
+    // FragColor = vec4(vec3(1.0) * fbm(hit*2.0), 1.0);
+    // return;
     
     // NEW
-    vec4 sphere = vec4(0.0, 0.0, 0.0, 2.0);
+    vec4 sphere = vec4(0.0, 0.0, 0.0, 1.5);
     vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
+
     if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
     vec4 color = raymarchVolume(cameraPos, dir, bounds, sphere.w, depth);
     FragColor = color;
@@ -426,7 +441,8 @@ float fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, 
     float value = 0.0;
     st *= frequency;
     for (int i = 0; i < octaves; i++) {
-        value += amplitude * noise3d(st).x;
+        value += amplitude * noise(st);
+        // value += amplitude * noise3d(st).x;
         st *= lacunarity;
         amplitude *= gain;
     }
