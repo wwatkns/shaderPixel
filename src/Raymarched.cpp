@@ -13,8 +13,7 @@ Raymarched::Raymarched( const std::vector<tObject>& objects ) : objects(objects)
         "./resource/ThickCloudsWater/ThickCloudsWaterFront2048.png",
         "./resource/ThickCloudsWater/ThickCloudsWaterBack2048.png",
     }});
-    // this->noiseSamplerId = loadTexture("./resource/LottesGrain5.png");
-    this->noiseSamplerId = loadTexture("./resource/image.png");
+    this->noiseSamplerId = loadTexture("./resource/RGBAnoiseMedium.png");
 }
 
 Raymarched::~Raymarched( void ) {
