@@ -13,6 +13,8 @@ Raymarched::Raymarched( const std::vector<tObject>& objects ) : objects(objects)
         "./resource/ThickCloudsWater/ThickCloudsWaterFront2048.png",
         "./resource/ThickCloudsWater/ThickCloudsWaterBack2048.png",
     }});
+    // this->noiseSamplerId = loadTexture("./resource/LottesGrain5.png");
+    this->noiseSamplerId = loadTexture("./resource/image.png");
 }
 
 Raymarched::~Raymarched( void ) {
@@ -87,6 +89,10 @@ void    Raymarched::render( Shader shader ) {
     glActiveTexture(GL_TEXTURE1);
     shader.setIntUniformValue("skybox", 1);
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->skyboxId);
+
+    glActiveTexture(GL_TEXTURE2);
+    shader.setIntUniformValue("noiseSampler", 2);
+    glBindTexture(GL_TEXTURE_2D, this->noiseSamplerId);
 
     /* render */
     glBindVertexArray(this->vao);

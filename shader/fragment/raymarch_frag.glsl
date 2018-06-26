@@ -31,9 +31,9 @@ in float Far;
 
 #define MAX_OBJECTS 8
 
-// uniform sampler2D noise;
 uniform sampler2D depthBuffer;
 uniform samplerCube skybox;
+uniform sampler2D noiseSampler;
 uniform sObject object[MAX_OBJECTS];
 uniform int nObjects;
 
@@ -102,38 +102,6 @@ float noise2d(in vec2 st) {
     return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }
 
-// http://www.iquilezles.org/www/articles/morenoise/morenoise.htm
-vec4 noise3d(in vec3 x) {
-    vec3 p = floor(x);
-    vec3 w = fract(x);
-    
-    vec3 u = w*w*w*(w*(w*6.0-15.0)+10.0);
-    vec3 du = 30.0*w*w*(w*(w-2.0)+1.0);
-
-    float a = random(p + vec3(0.0,0.0,0.0));
-    float b = random(p + vec3(1.0,0.0,0.0));
-    float c = random(p + vec3(0.0,1.0,0.0));
-    float d = random(p + vec3(1.0,1.0,0.0));
-    float e = random(p + vec3(0.0,0.0,1.0));
-    float f = random(p + vec3(1.0,0.0,1.0));
-    float g = random(p + vec3(0.0,1.0,1.0));
-    float h = random(p + vec3(1.0,1.0,1.0));
-
-    float k0 = a;
-    float k1 = b - a;
-    float k2 = c - a;
-    float k3 = e - a;
-    float k4 = a - b - c + d;
-    float k5 = a - c - e + g;
-    float k6 = a - b - e + f;
-    float k7 = -a + b + c - d + e - f - g + h;
-
-    return vec4(-1.0+2.0*(k0 + k1*u.x + k2*u.y + k3*u.z + k4*u.x*u.y + k5*u.y*u.z + k6*u.z*u.x + k7*u.x*u.y*u.z), 
-                2.0 * du * vec3( k1 + k4*u.y + k6*u.z + k7*u.y*u.z,
-                                k2 + k5*u.z + k4*u.x + k7*u.z*u.x,
-                                k3 + k6*u.x + k5*u.y + k7*u.x*u.y ) );
-}
-
 float pattern(vec2 st, vec2 v, float t) {
     vec2 p = floor(st+v);
     return step(t, random(100.+p*.000001)+random(p.x)*0.5 );
@@ -143,38 +111,27 @@ highp float hash( float n ) {
     return fract(sin(mod(n,3.14))*43758.5453);
 }
 
-float noise( in vec3 x ) {
-    vec3 p = floor(x);
+// float noise( in vec3 x ) {
+//     vec3 p = floor(x);
+//     vec3 f = fract(x);
+//     f = f*f*(3.0-2.0*f);
+//     float n = p.x + p.y*57.0 + 113.0*p.z;
+//     float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
+//                         mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
+//                     mix(mix( hash(n+113.0), hash(n+114.0),f.x),
+//                         mix( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
+//     return res;
+// }
+
+float noise( vec3 x ) { // iq's 3D noise from texture
     vec3 f = fract(x);
-    f = f*f*(3.0-2.0*f);
-    float n = p.x + p.y*57.0 + 113.0*p.z;
-    float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
-                        mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
-                    mix(mix( hash(n+113.0), hash(n+114.0),f.x),
-                        mix( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
-    return res;
+    vec3 p = x - f;
+    f = f*f*(3.0 - 2.0*f);
+    vec2 uv = (p.xy + vec2(37.0, 17.0) * p.z) + f.xy;
+    vec2 rg = texture(noiseSampler, (uv + 0.5) / 512.0, -100.0).rg;
+    return mix(rg.y, rg.x, f.z);
 }
 
-// float noise( vec3 x ) { // iq's 3D noise from texture
-//     vec3 f = fract(x);
-//     vec3 p = x - f;
-//     f = f*f*(3.0 - 2.0*f);
-//     vec2 uv = (p.xy + vec2(37.0, 17.0) * p.z) + f.xy;
-//     vec2 rg = texture(noise, (uv + 0.5)/256.0, -100.0).rg;
-//     return mix(rg.y, rg.x, f.z);
-// }
-
-mat3 m = mat3( 0.00,  0.80,  0.60,
-              -0.80,  0.36, -0.48,
-              -0.60, -0.48,  0.64 );
-
-// float fbm( vec3 p ) {
-//     float f;
-//     f  = 0.5000*noise(p); p = m*p*2.02;
-//     f += 0.2500*noise(p); p = m*p*2.03;
-//     f += 0.1250*noise(p);
-//     return f;
-// }
 
 // cloud
 // vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s) { // same as raymarch, but we accumulate value when inside and sample the occlusion
@@ -253,10 +210,10 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
     const int maxShadowSamples = 10;
     float shadowStepSize = (2.0 * radius) / float(maxShadowSamples); 
     vec3 lightVector = normalize(directionalLight.position) * shadowStepSize;
-    float absorption = 100.0;
+    float absorption = 90.0;
     const float r = 7.0;
     
-    const int maxVolumeSamples = 40; // max steps in sphere
+    const int maxVolumeSamples = 50; // max steps in sphere
     float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
     vec4 sum = vec4(0.0);
@@ -266,7 +223,8 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
         vec3 pos = ro + rd * t;
         float se = fbm3d(pos + uTime*0.1, 0.5, 2.5, 6, 2.7, 0.38);
         se = exp(-se * r);
-        se *= 1.0 - smoothstep(0.8 * radius, radius, length(pos)); // edge so that we have no interaction with sphere bounds
+        // se = (1.0 - exp(-se * 2.0 * r)) * exp(-se * r);
+        se *= 1.0 - smoothstep(0.75 * radius, radius, length(pos)); // edge so that we have no interaction with sphere bounds
         
         // SHADOW
         float T1 = 1.0;
@@ -275,21 +233,20 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
             float ldensity = fbm3d(lpos + uTime*0.1, 0.5, 2.5, 6, 2.7, 0.38);
             // ldensity = exp(-ldensity * r);
             ldensity = (1.0 - exp(-ldensity * 2.0 * r)) * exp(-ldensity * r);
-            ldensity *= 1.0 - smoothstep(0.8 * radius, radius, length(lpos));
+            ldensity *= 1.0 - smoothstep(0.75 * radius, radius, length(lpos));
 
             if (ldensity > 0.0)
-                T1 *= 1.0 - ldensity*absorption/float(maxVolumeSamples);
-            if (T1 <= 0.01 || T1 > 0.999)
-                break;
+                T1 *= clamp(1.0 - ldensity * absorption/float(maxVolumeSamples), 0.0, 1.0);
+            if (T1 <= 0.01) break;
         }
 
         // col.rgb -= (1.0 - vec3(0.145, 0.431, 1.0)*0.5)*(1.0 - T1); // handle shadows
 
-        vec4 col = vec4(mix(vec3(1.0), vec3(directionalLight.ambient), se), se);
-        col.rgb *= mix(vec3(directionalLight.ambient), vec3(1.0, 0.87, 0.64)*1.2, min(T1, 1.0));
+        vec4 col = vec4(mix(vec3(1.0), vec3(directionalLight.ambient), 1.0-T1), se);
+        // col.rgb *= mix(vec3(directionalLight.ambient), vec3(1.0, 0.87, 0.64), T1);
 		col.a *= 0.5;
 		col.rgb *= col.a;
-        sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);
+        sum += col * (1.0 - sum.a) * (stepSize * 100.0);
 		t += stepSize;
 	}
 	return sum;
