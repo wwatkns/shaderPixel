@@ -208,12 +208,12 @@ float noise( vec3 x ) {
 vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s) { // same as raymarch, but we accumulate value when inside and sample the occlusion
     bounds *= radius;
     // NEW
-    const int maxShadowSamples = 24;
+    const int maxShadowSamples = 16;
     float shadowStepSize = (2.0 * radius) / float(maxShadowSamples); 
     vec3 lightVector = normalize(directionalLight.position) * shadowStepSize;
     const float r = 6.0;
     
-    const int maxVolumeSamples = 80; // max steps in sphere
+    const int maxVolumeSamples = 32; // max steps in sphere
     float absorption = 50.0 / float(maxShadowSamples);
     float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
