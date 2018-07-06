@@ -20,7 +20,8 @@ enum class eRaymarchObject {
     mandelbox,
     mandelbulb,
     ifs,
-    cloud,
+    marble, // volumetric raymarching with surface lighting
+    cloud, // volumetric raymarching with volumetric lighting
     torus
 };
 

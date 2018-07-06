@@ -37,20 +37,20 @@ Env::Env( void ) {
         //     // ),
         // }};
         this->raymarched = new Raymarched({
-            // (tObject){
-            //     eRaymarchObject::ifs,
-            //     glm::vec3(0.0, 2.0, 0.0),
-            //     glm::vec3(0.0),
-            //     0.25,
-            //     0.03,
-            //     (tMaterial){
-            //         glm::vec3(0),
-            //         glm::vec3(1.0),
-            //         glm::vec3(0.35),
-            //         128.0,
-            //         1.0
-            //     }
-            // },
+            (tObject){
+                eRaymarchObject::ifs,
+                glm::vec3(0.0, 2.0, 0.0),
+                glm::vec3(0.0),
+                0.25,
+                0.03,
+                (tMaterial){
+                    glm::vec3(0),
+                    glm::vec3(1.0),
+                    glm::vec3(0.35),
+                    128.0,
+                    1.0
+                }
+            },
             // (tObject){
             //     eRaymarchObject::mandelbox,
             //     glm::vec3(0.0, 4.0, 0.0),
@@ -65,39 +65,53 @@ Env::Env( void ) {
             //         1.0
             //     }
             // },
-            // (tObject){
-            //     eRaymarchObject::mandelbulb,
-            //     glm::vec3(4.0, 4.0, 0.0),
-            //     glm::vec3(0.0),
-            //     0.5,
-            //     0.1,
-            //     (tMaterial){
-            //         glm::vec3(0.0),
-            //         glm::vec3(0.0),
-            //         glm::vec3(0.35, 0.35, 0.35),
-            //         82.0,
-            //         1.0
-            //     }
-            // },
-            // (tObject){
-            //     eRaymarchObject::toruscloud,,
-            //     glm::vec3(8.0, 3.5, 0.0),
-            //     glm::vec3(0.0),
-            //     0.1,
-            //     1.0,
-            //     (tMaterial){
-            //         glm::vec3(0.0),
-            //         glm::vec3(1.0),
-            //         glm::vec3(1.0, 1.0, 1.0),
-            //         128.0,
-            //         1.0
-            //     }
-            // }
+            (tObject){
+                eRaymarchObject::mandelbulb,
+                glm::vec3(4.0, 4.0, 0.0),
+                glm::vec3(0.0),
+                0.5,
+                0.1,
+                (tMaterial){
+                    glm::vec3(0.0),
+                    glm::vec3(0.0),
+                    glm::vec3(0.35, 0.35, 0.35),
+                    82.0,
+                    1.0
+                }
+            },
+            (tObject){
+                eRaymarchObject::torus,
+                glm::vec3(1.0, 1.5, 0.0),
+                glm::vec3(0.0),
+                0.1,
+                1.0,
+                (tMaterial){
+                    glm::vec3(0.0),
+                    glm::vec3(1.0),
+                    glm::vec3(1.0, 1.0, 1.0),
+                    128.0,
+                    1.0
+                }
+            },
             (tObject){
                 eRaymarchObject::cloud,
                 glm::vec3(0.0, 0.0, 0.0),
                 glm::vec3(0.0),
+                2.5,
                 1.0,
+                (tMaterial){
+                    glm::vec3(0.0),
+                    glm::vec3(1.0),
+                    glm::vec3(0.0),
+                    1.0,
+                    1.0
+                }
+            },
+            (tObject){
+                eRaymarchObject::marble,
+                glm::vec3(-2.0, 0.0, 0.0),
+                glm::vec3(0.0),
+                1.5,
                 1.0,
                 (tMaterial){
                     glm::vec3(0.0),

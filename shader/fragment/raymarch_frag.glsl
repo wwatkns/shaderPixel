@@ -198,31 +198,30 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
 	return sum;
 }
 
-
 // marble
-// vec4    raymarchVolumeMarble( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) {
-//     bounds *= radius;
-//     const int maxVolumeSamples = 500; // max steps in sphere
-//     float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
-// 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
-//     vec4 sum = vec4(0.0);
-// 	for (int i = 0; i < maxVolumeSamples; i++) {
-//         if (sum.a > 0.99 || t > bounds.y || t > s) break; // optimization and geometry occlusion
-//         vec3 pos = ro + rd * t;
-//         float se = fbm3d(42.0 + pos * fbm3d(uTime*0.005 + pos, 0.5, 3.0, 4, 1.9, 0.5), 0.5, 3.0, 5, 3.0, 0.45);
-//         se = 1.0 / exp(se * 5.0);
-//         se *= 1.0 - smoothstep(0.9 * radius, radius, length(pos)); // prevent hard cut at sphere's bound
-//         float v = exp(se*42.0)*0.0001;
-//         vec4 col = vec4(vec3(se*se+v, se*se*v, se*se), se);
-// 		col.a *= 0.75;
-// 		col.rgb *= col.a;
-//         col = clamp(col, 0.0, 1.0);
-//         sum = sum + col * (2.0 - sum.a) * (stepSize * 100.0);
-// 		t += stepSize;
-// 	}
-//     sum.rgb *= 3.5;
-// 	return sum;
-// }
+vec4    raymarchVolumeMarble( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) {
+    bounds *= radius;
+    const int maxVolumeSamples = 500; // max steps in sphere
+    float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
+	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
+    vec4 sum = vec4(0.0);
+	for (int i = 0; i < maxVolumeSamples; i++) {
+        if (sum.a > 0.99 || t > bounds.y || t > s) break; // optimization and geometry occlusion
+        vec3 pos = ro + rd * t;
+        float se = fbm3d(42.0 + pos * fbm3d(uTime*0.005 + pos, 0.5, 3.0, 4, 1.9, 0.5), 0.5, 3.0, 5, 3.0, 0.45);
+        se = 1.0 / exp(se * 5.0);
+        se *= 1.0 - smoothstep(0.9 * radius, radius, length(pos)); // prevent hard cut at sphere's bound
+        float v = exp(se*42.0)*0.0001;
+        vec4 col = vec4(vec3(se*se+v, se*se*v, se*se), se);
+		col.a *= 0.75;
+		col.rgb *= col.a;
+        col = clamp(col, 0.0, 1.0);
+        sum = sum + col * (2.0 - sum.a) * (stepSize * 100.0);
+		t += stepSize;
+	}
+    sum.rgb *= 3.5;
+	return sum;
+}
 
 void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
@@ -237,30 +236,130 @@ void    main() {
     depth = 2.0 * Near * Far / (Far + Near - depth * (Far - Near));
 
     // raymarch
-    // vec4 res = raymarch(cameraPos, dir, depth);
-    // if (res.x == 0.0) { FragColor = vec4(0.0); return ; }
+    vec4 res = raymarch(cameraPos, dir, depth);
+    FragColor = vec4(0.0);
+    if (res.x > 0.0) {
+        depth = res.x; // used for volumetric raymarching after for collision
+        int id = int(res.w);
+        // // compute useful variables for light
+        vec3 hit = cameraPos + dir * res.x;
+        vec3 normal = getNormal(hit);
+        vec3 viewDir = normalize(cameraPos - hit);
 
-    // int id = int(res.w);
+        // compute colors
+        if (object[id].id == 0) { // mandelbox
+            float it = res.z / float(maxRaySteps);
+            vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
+            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false, false);
+            vec2 st = hit.xy * 10;
+            vec2 grid = vec2(100.0, 50.0);
+            st *= grid;
+            vec2 ipos = floor(st);
+            vec2 fpos = fract(st);
+            vec2 vel = vec2(uTime * 0.3 * max(grid.x, grid.y));
+            vel *= vec2(-1.0, 0.0) * random(1.0 + ipos.y);
+            vec2 offset = vec2(0.1, 0.);
+            vec3 patt = vec3(0.);
+            patt.r = pattern(st + offset, vel, 0.5 + 0.1);
+            patt.g = pattern(st, vel, 0.5 + 0.1);
+            patt.b = pattern(st - offset, vel, 0.5 + 0.1);
+            patt *= step(0.2, fpos.y);
+            patt = (1.0-patt * 0.7) * vec3(1.0, 0.73, 0.3) * 1.5;
+            // float r = 2.0*fbm2d(hit.xy + fbm2d(hit.xy + uTime*0.01, 0.85, 3.0, 16, 3.0, 0.5), 0.85, 3.0, 16, 6.0, 0.5);
+            FragColor = vec4(patt * light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
+            /* add fog if we're in cube */
+            float fog = res.x * 0.5 / object[id].scale * 12.0;
+            vec3 colorFog = fog * fog * vec3(0.9, 0.517, 0.345) * 0.5;
+            float t = 0.0;
+            for (int i = 0; i < 10; i++) {
+                float scale = object[id].scale;
+                vec3 p = (object[id].invMat * vec4(cameraPos + dir * t, 1.0)).xyz / scale;
+                float res = cube(p) * scale;
+                t += res;
+                if (t > maxDist || t > depth) break;
+                if (res < 0.1*object[id].scale) { FragColor.xyz += clamp(colorFog * (0.1-t), 0.0, 10.0); break; }
+            }
+        }
+        else if (object[id].id == 1) { // mandelbulb
+            res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
+            vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
+            vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
+            vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, true);
+            FragColor = vec4(color, object[id].material.opacity);
+        }
+        else if (object[id].id == 2) { // ifs
+            float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
+            vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
+            vec3 diffuse = vec3(1.0, 0.694, 0.251);
+            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
+            FragColor = vec4(light + log(glow * 0.95) * 0.75, 1.0);
+        }
+        else {
+            vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
+            FragColor = vec4(color, object[id].material.opacity);
+        }
+    }
 
-    // compute useful variables for light
-    // vec3 hit = cameraPos + dir * res.x;
-    // vec3 normal = getNormal(hit);
-    // vec3 viewDir = normalize(cameraPos - hit);
+    // VOLUMETRIC RAYMARCHING
+    // compute normal raymarching and compute color and then apply the color of the transparent volumetric object
 
-    // vec2 bounds = raySphere(cameraPos, dir, vec4(0.0, 0.0, 0.0, 1.0), depth);
-    // vec3 hit = cameraPos + dir * bounds.x;
-    // FragColor = vec4(vec3(1.0) * fbm3d(hit+uTime*0.015, 0.5, 10.0, 16, 4.0, 0.5), 1.0-fbm3d(hit+uTime*0.05, 0.5, 10.0, 16, 4.0, 0.5));
-    // FragColor = vec4(vec3(1.0) * fbm3d(vec3(TexCoords.xy, uTime*0.05), 0.5, 10.0, 10, 2.5, 0.5), 1.0);
-    // vec3 pos = vec3(FragPos.xy / vec2(1.0, 1.5), 0.0);
-    // FragColor = vec4(vec3(1.0) * fbm3d(pos+uTime*0.1, 0.5, 2.0, 16, 2.5, 0.5), 1.0);
-    // FragColor = vec4(vec3(1.0) * fbm(hit*2.0), 1.0);
-    // return;
-    
+    // NEW
+    // Raymarch for volumetric objects
+    vec4 color = vec4(0.0);
+    for (int i = 0; i < MAX_OBJECTS && i < nObjects; i++) {
+        if (object[i].id == 3 || object[i].id == 4) { // 3 and 4 are marble and cloud
+            // vec3 pos = (object[i].invMat * vec4(vec3(0.0),1.0)).xyz;// / object[i].scale; // MAYBE?
+            vec3 pos = vec3(object[i].invMat[3][0], object[i].invMat[3][1], object[i].invMat[3][2]); // MAYBE?
+            vec4 sphere = vec4(pos, object[i].scale);
+            vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
+            if (bounds.x < 0.0) { continue ; }
+
+            // vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
+            // vec3 normal = normalize(hit);
+            // vec3 viewDir = -dir;
+            // resVolume = vec4(distance(hit, cameraPos), 0, 0, i);
+
+            if (object[i].id == 3) { // MARBLE
+                vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
+                vec3 normal = normalize(hit);
+                vec3 viewDir = -dir;
+
+                vec4 col = raymarchVolumeMarble(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
+                col.xyz = clamp(vec3(0.0, 0.0, 0.03) + col.xyz, 0.0, 1.0);
+                vec3 light = computeDirectionalLight(0, hit, normal, viewDir, col.xyz, false, false);
+                // fresnel specular reflection
+                if (bounds.x > 0.0) {
+                    vec3 spec = pow(texture(skybox, reflect(dir, hit)).rgb, vec3(2.2));
+                    float f = 1.0 - pow(1.0 - clamp(-dot(hit, dir), 0.0, 1.0), 4.0 / sphere.w);
+                    light = mix(spec, light, f);
+                }
+                // if (color.w > 0.0)
+                //     FragColor.xyz *= 1.0 - min(color.w + 0.8, 1.0);
+                // FragColor += vec4(light, color.w + 0.8);
+                if (col.w + 0.8 > 0.0)
+                    color.rgb *= 1.0 - min(col.w + 0.8, 1.0);
+                color += vec4(light, col.w + 0.8);
+            }
+            else if (object[i].id == 4) { // CLOUD
+                vec4 col = raymarchVolume(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
+                // if (color.w > 0.0)
+                //     FragColor.xyz *= 1.0 - min(color.w, 1.0);
+                // FragColor += color;
+                if (col.w > 0.0)
+                    color.rgb *= 1.0 - min(col.w, 1.0);
+                color += col;
+            }
+        }
+    }
+    if (color.w > 0.0)
+        FragColor.xyz *= 1.0 - min(color.w, 1.0);
+    FragColor += color;
+
     // NON-VOLUMETRIC (MARBLE)
     // {
     //     vec4 sphere = vec4(0.0, 0.0, 0.0, 1.5);
     //     vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
-    //     if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
+    //     if (bounds.x < 0.0) { return ; }
 
     //     vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
     //     vec3 normal = normalize(hit);
@@ -275,82 +374,29 @@ void    main() {
     //         float f = 1.0 - pow(1.0 - clamp(-dot(hit, dir), 0.0, 1.0), 4.0 / sphere.w);
     //         light = mix(spec, light, f);
     //     }
-    //     FragColor = vec4(light, color.w + 0.8);
+    //     if (color.w > 0.0)
+    //         FragColor.xyz *= 1.0 - min(color.w + 0.8, 1.0);
+    //     FragColor += vec4(light, color.w + 0.8);
     //     return;
     // }
 
     /// VOLUMETRIC
-    {
-        vec4 sphere = vec4(0.0, 0.0, 0.0, 2.5);
-        vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
-        if (bounds.x < 0.0) { FragColor = vec4(0.0); return ; }
+    // {
+    //     vec4 sphere = vec4(0.0, 0.0, 0.0, 2.5);
+    //     vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
+    //     if (bounds.x < 0.0) { return ; }
 
-        vec4 color = raymarchVolume(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
-        FragColor = color;
-        return;
-    }
-
-    // compute colors
-    // if (object[id].id == 0) { // mandelbox
-    //     float it = res.z / float(maxRaySteps);
-    //     vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
-    //     vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false, false);
-    //     // NEW
-    //     vec2 st = hit.xy * 10;
-    //     vec2 grid = vec2(100.0, 50.0);
-    //     st *= grid;
-    //     vec2 ipos = floor(st);
-    //     vec2 fpos = fract(st);
-    //     vec2 vel = vec2(uTime * 0.3 * max(grid.x, grid.y));
-    //     vel *= vec2(-1.0, 0.0) * random(1.0 + ipos.y);
-    //     vec2 offset = vec2(0.1, 0.);
-    //     vec3 patt = vec3(0.);
-    //     patt.r = pattern(st + offset, vel, 0.5 + 0.1);
-    //     patt.g = pattern(st, vel, 0.5 + 0.1);
-    //     patt.b = pattern(st - offset, vel, 0.5 + 0.1);
-    //     patt *= step(0.2, fpos.y);
-    //     patt = (1.0-patt * 0.7) * vec3(1.0, 0.73, 0.3) * 1.5;
-
-    //     // float r = 2.0*fbm2d(hit.xy + fbm2d(hit.xy + uTime*0.01, 0.85, 3.0, 16, 3.0, 0.5), 0.85, 3.0, 16, 6.0, 0.5);
-
-    //     FragColor = vec4(patt * light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
-    //     /* add fog if we're in cube */
-    //     float fog = res.x * 0.5 / object[id].scale * 12.0;
-    //     vec3 colorFog = fog * fog * vec3(0.9, 0.517, 0.345) * 0.5;
-    //     float t = 0.0;
-    //     for (int i = 0; i < 10; i++) {
-    //         float scale = object[id].scale;
-    //         vec3 p = (object[id].invMat * vec4(cameraPos + dir * t, 1.0)).xyz / scale;
-    //         float res = cube(p) * scale;
-    //         t += res;
-    //         if (t > maxDist || t > depth) break;
-    //         if (res < 0.1*object[id].scale) { FragColor.xyz += clamp(colorFog * (0.1-t), 0.0, 10.0); break; }
-    //     }
-    // }
-    // else if (object[id].id == 1) { // mandelbulb
-    //     res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
-    //     vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
-    //     vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
-    //     vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, true);
-    //     FragColor = vec4(color, object[id].material.opacity);
-    // }
-    // else if (object[id].id == 2) { // ifs
-    //     float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
-    //     vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
-    //     vec3 diffuse = vec3(1.0, 0.694, 0.251);
-    //     vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
-    //     FragColor = vec4(light + log(glow * 0.95) * 0.75, 1.0);
-    // }
-    // else {
-    //     vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
-    //     FragColor = vec4(color, object[id].material.opacity);
+    //     vec4 color = raymarchVolume(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
+    //     if (color.w > 0.0)
+    //         FragColor.xyz *= 1.0 - min(color.w, 1.0); // COLOR of current 
+    //     FragColor += color;
+    //     return;
     // }
 
     // iterations color
     // {
         // FragColor = vec4(res.z / float(maxRaySteps), 0, 0.03, 1.0);
     // }
-
     // depth-buffer debug
     // {
     //     float near = 0.1;
@@ -378,9 +424,7 @@ vec3    map( in vec3 p ) {
             new = vec3(mandelbulb(pos), 1);
         else if (object[i].id == 2)
             new = vec3(ifs(pos), 0, 2);
-        else if (object[i].id == 3)
-            new = vec3(sphere(pos, 1.0), 0, 3); // WIP
-        else if (object[i].id == 4)
+        else if (object[i].id == 5)
             new = vec3(torus(pos), 0, 4);
 
         new.x *= object[i].scale;
