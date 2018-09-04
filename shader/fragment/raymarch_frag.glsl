@@ -58,7 +58,6 @@ const float minDistShadow = 0.005;  // the distance from object threshold at whi
 
 /* prototypes */
 vec4    raymarch( in vec3 ro, in vec3 rd, float s );
-// float   raymarchVolume( in vec3 ro, in vec3 rd, float ct, float s );
 vec3    getNormal( in vec3 p );
 vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion );
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
@@ -85,7 +84,7 @@ float random(vec2 p) {
     return fract(sin(mod(dot(p, vec2(12.9898,78.233)), 3.14))*43758.5453);
 }
 
-float random(vec3 p) { // find better random ?
+float random(vec3 p) {
 	return fract(sin( mod(dot(p, vec3(113.5,271.9,124.6)), 3.14) )*43758.5453);
 }
 
@@ -134,35 +133,12 @@ float noise( vec3 x ) {
 }
 
 
-// cloud
-// vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s) { // same as raymarch, but we accumulate value when inside and sample the occlusion
-//     bounds *= radius;
-//     const int maxVolumeSamples = 50; // max steps in sphere
-//     float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
-// 	float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
-//     vec4 sum = vec4(0.0);
-// 	for (int i = 0; i < maxVolumeSamples; i++) {
-//         if (sum.a > 0.99 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
-//         vec3 pos = ro + rd * t;
-//         float se = fbm3d(pos, 0.65, 2.0, 5, 2.0, 0.35);
-//         se = 1.0 / exp(se * 7.0);
-//         se *= 1.0 - smoothstep(0.8 * radius, radius, length(pos)); // edge so that we have no interaction with sphere bounds
-//         vec4 col = vec4(vec3(1.0-se), se);
-// 		col.a *= 0.5;
-// 		col.rgb *= col.a;
-//         sum = sum + col * (1.0 - sum.a) * (stepSize * 100.0);
-// 		t += stepSize;
-// 	}
-// 	return sum;
-// }
-
-// WORKING
 vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s) { // same as raymarch, but we accumulate value when inside and sample the occlusion
     bounds *= radius;
     const int maxVolumeSamples = 40; // max steps for density sampling
     const int maxShadowSamples = 20; // max steps for shadow sampling
     const float r = 6.0;
-    float shadowStepSize = (2.0 * radius) / float(maxShadowSamples); 
+    float shadowStepSize = (2.0 * radius) / float(maxShadowSamples);
     vec3 lightVector = normalize(directionalLight.position) * shadowStepSize;
     float absorption = 50.0 / float(maxShadowSamples);
     float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
@@ -188,8 +164,8 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
                 T1 *= clamp(1.0 - ldensity * absorption, 0.0, 1.0);
             if (T1 <= 0.01) break;
         }
-        vec4 col = vec4(mix(vec3(1.0), vec3(directionalLight.ambient), min(se * 2.5, 1.0)), se);
-        col.rgb *= mix(vec3(0.145, 0.431, 1.0)*0.7, vec3(1.0, 0.964, 0.79) * 1.1, max(T1, 0.1));
+        vec4 col = vec4(vec3(1.0), se);// = vec4(mix(vec3(1.0), vec3(directionalLight.ambient), min(se * 2.5, 1.0)), se);
+        col.rgb *= mix(vec3(0.145, 0.431, 1.0)*0.5, vec3(1.0), max(T1, 0.1));
 		col.a *= 0.5;
 		col.rgb *= col.a;
         sum += col * (1.0 - sum.a) * (stepSize * 100.0);
@@ -300,24 +276,17 @@ void    main() {
         }
     }
 
-    // VOLUMETRIC RAYMARCHING
     // compute normal raymarching and compute color and then apply the color of the transparent volumetric object
-
-    // NEW
+    /* NOTE: Maybe we should add a term to the raymarchVolume functions which is the density already reached by another medium */
     // Raymarch for volumetric objects
     vec4 color = vec4(0.0);
     for (int i = 0; i < MAX_OBJECTS && i < nObjects; i++) {
         if (object[i].id == 3 || object[i].id == 4) { // 3 and 4 are marble and cloud
-            // vec3 pos = (object[i].invMat * vec4(vec3(0.0),1.0)).xyz;// / object[i].scale; // MAYBE?
-            vec3 pos = vec3(object[i].invMat[3][0], object[i].invMat[3][1], object[i].invMat[3][2]); // MAYBE?
+            vec3 pos = (object[i].invMat * vec4(vec3(0.0),-1.0)).xyz;
+            // vec3 pos = vec3(object[i].invMat[3][0], object[i].invMat[3][1], object[i].invMat[3][2]);
             vec4 sphere = vec4(pos, object[i].scale);
             vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
             if (bounds.x < 0.0) { continue ; }
-
-            // vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
-            // vec3 normal = normalize(hit);
-            // vec3 viewDir = -dir;
-            // resVolume = vec4(distance(hit, cameraPos), 0, 0, i);
 
             if (object[i].id == 3) { // MARBLE
                 vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
@@ -333,18 +302,12 @@ void    main() {
                     float f = 1.0 - pow(1.0 - clamp(-dot(hit, dir), 0.0, 1.0), 4.0 / sphere.w);
                     light = mix(spec, light, f);
                 }
-                // if (color.w > 0.0)
-                //     FragColor.xyz *= 1.0 - min(color.w + 0.8, 1.0);
-                // FragColor += vec4(light, color.w + 0.8);
                 if (col.w + 0.8 > 0.0)
                     color.rgb *= 1.0 - min(col.w + 0.8, 1.0);
                 color += vec4(light, col.w + 0.8);
             }
             else if (object[i].id == 4) { // CLOUD
                 vec4 col = raymarchVolume(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
-                // if (color.w > 0.0)
-                //     FragColor.xyz *= 1.0 - min(color.w, 1.0);
-                // FragColor += color;
                 if (col.w > 0.0)
                     color.rgb *= 1.0 - min(col.w, 1.0);
                 color += col;
@@ -354,44 +317,6 @@ void    main() {
     if (color.w > 0.0)
         FragColor.xyz *= 1.0 - min(color.w, 1.0);
     FragColor += color;
-
-    // NON-VOLUMETRIC (MARBLE)
-    // {
-    //     vec4 sphere = vec4(0.0, 0.0, 0.0, 1.5);
-    //     vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
-    //     if (bounds.x < 0.0) { return ; }
-
-    //     vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
-    //     vec3 normal = normalize(hit);
-    //     vec3 viewDir = -dir;
-
-    //     vec4 color = raymarchVolumeMarble(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
-    //     color.xyz = clamp(vec3(0.0, 0.0, 0.03) + color.xyz, 0.0, 1.0);
-    //     vec3 light = computeDirectionalLight(0, hit, normal, viewDir, color.xyz, false, false);
-    //     // fresnel specular reflection
-    //     if (bounds.x > 0.0) {
-    //         vec3 spec = pow(texture(skybox, reflect(dir, hit)).rgb, vec3(2.2));
-    //         float f = 1.0 - pow(1.0 - clamp(-dot(hit, dir), 0.0, 1.0), 4.0 / sphere.w);
-    //         light = mix(spec, light, f);
-    //     }
-    //     if (color.w > 0.0)
-    //         FragColor.xyz *= 1.0 - min(color.w + 0.8, 1.0);
-    //     FragColor += vec4(light, color.w + 0.8);
-    //     return;
-    // }
-
-    /// VOLUMETRIC
-    // {
-    //     vec4 sphere = vec4(0.0, 0.0, 0.0, 2.5);
-    //     vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
-    //     if (bounds.x < 0.0) { return ; }
-
-    //     vec4 color = raymarchVolume(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
-    //     if (color.w > 0.0)
-    //         FragColor.xyz *= 1.0 - min(color.w, 1.0); // COLOR of current 
-    //     FragColor += color;
-    //     return;
-    // }
 
     // iterations color
     // {
@@ -536,7 +461,6 @@ vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
 
 /*  Distance Estimators
 */
-
 float   sphere( vec3 p, float s ) {
     return length(p) - s;
 }

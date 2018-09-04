@@ -13,6 +13,7 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <thread>
 
 #include "Exception.hpp"
 #include "Env.hpp"
@@ -52,6 +53,7 @@ private:
     tDepthMap       shadowDepthMap; // depth map for the shadows
     glm::mat4       lightSpaceMat;
     int             useShadows;
+    float           framerate;
 
     tTimePoint      lastTime;
 

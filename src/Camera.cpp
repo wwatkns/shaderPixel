@@ -4,16 +4,14 @@
 Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect), fov(fov), near(near), far(far) {
     this->projectionMatrix = glm::perspective(glm::radians(fov), aspect, near, far);
     this->invProjectionMatrix = glm::inverse(this->projectionMatrix);
-    this->position = glm::vec3(0.0f, 2.9f, 5.5f) * 0.25;
-    this->cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
-    // this->position = glm::vec3(0.0f, 0.0f, 1.5);
-    // this->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    this->position = glm::vec3(0.0f, 0.0f, 3.0f);
+    this->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     this->viewMatrix = glm::lookAt(this->position, this->position + this->cameraFront, glm::vec3(0.0f, 1.0f, 0.0f));
     this->invViewMatrix = glm::inverse(this->viewMatrix);
     this->pitch = 0;
     this->yaw = 0;
     this->last = std::chrono::steady_clock::now();
-    this->speed = 0.0025;
+    this->speed = 0.02;//0.0025;
     this->speedmod = 1.0;
 }
 

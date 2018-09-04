@@ -9,10 +9,13 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping_vert.glsl", "./shader/fragment/shadow_mapping_frag.glsl");
     // this->shader["cloud"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/cloud_frag.glsl");
     this->shader["raymarch"] = new Shader("./shader/vertex/raymarch_vert.glsl", "./shader/fragment/raymarch_frag.glsl");
+    this->lastTime = std::chrono::steady_clock::now();
+    this->framerate = 60.0;
+
     this->initDepthMap();
     this->initShadowDepthMap(4096, 4096);
+    
     this->useShadows = 0;
-    this->lastTime = std::chrono::steady_clock::now();
 }
 
 Renderer::~Renderer( void ) {
@@ -20,12 +23,13 @@ Renderer::~Renderer( void ) {
 
 void	Renderer::loop( void ) {
     static int frames = 0;
+    static double last = 0.0;
     glEnable(GL_DEPTH_TEST); /* z-buffering */
     glEnable(GL_FRAMEBUFFER_SRGB); /* gamma correction */
     // glEnable(GL_MULTISAMPLE); /* multisampling MSAA */
     glEnable(GL_BLEND); /* transparency */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_CULL_FACE); /* enable face-culling (back faces of triangles are not rendered) */
+    // glEnable(GL_CULL_FACE); /* enable face-culling (back faces of triangles are not rendered) */
     while (!glfwWindowShouldClose(this->env->getWindow().ptr)) {
         glfwPollEvents();
         glClearColor(0.09f, 0.08f, 0.15f, 1.0f);
@@ -45,15 +49,19 @@ void	Renderer::loop( void ) {
         this->renderShaders();
         glfwSwapBuffers(this->env->getWindow().ptr);
 
+        /* display framerate */
         tTimePoint current = std::chrono::steady_clock::now();
         frames++;
         if ((static_cast<tMilliseconds>(current - this->lastTime)).count() > 999) {
-            // float fps = 1000.0 / (static_cast<tMilliseconds>(current - this->lastTime)).count();
-            // std::cout << fps << " fps" << std::endl;
             std::cout << frames << " fps" << std::endl;
             this->lastTime = current;
             frames = 0;
         }
+        /* cap framerate */
+        double delta = std::abs(glfwGetTime()/1000.0 - last);
+        if (delta < (1000. / this->framerate))
+            std::this_thread::sleep_for(std::chrono::milliseconds((uint64_t)(1000. / this->framerate - delta)));
+        last = glfwGetTime()/1000.0;
     }
 }
 
@@ -61,8 +69,10 @@ void    Renderer::updateShadowDepthMap( void ) {
     Light*  directionalLight = this->env->getDirectionalLight();
     if (this->useShadows && directionalLight) {
         glm::mat4 lightProjection, lightView;
-        float near_plane = 0.1f, far_plane = 35.0f;
-        lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
+        // float near_plane = 0.1f, far_plane = 35.0f;
+        // lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
+        float near_plane = 0.1f, far_plane = 100.0f;
+        lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
         lightView = glm::lookAt(directionalLight->getPosition(), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         this->lightSpaceMat = lightProjection * lightView;
         /* render scene from light's point of view */
@@ -132,7 +142,7 @@ void    Renderer::renderSkybox( void ) {
     /* render skybox */
     this->env->getSkybox()->render(*this->shader["skybox"]);
     glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
 }
 
 void    Renderer::renderShaders( void ) {
@@ -158,7 +168,7 @@ void    Renderer::renderShaders( void ) {
         this->env->getRaymarched()->render(*this->shader["raymarch"]);
 
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
 }
 
 void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) {
