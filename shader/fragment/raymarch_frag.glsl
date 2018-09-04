@@ -44,9 +44,9 @@ uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 cameraPos;
 
-const int 	maxRaySteps = 300;      // the maximum number of steps the raymarching algorithm is allowed to perform
-const float maxDist = 6.0;         // the maximum distance the ray can travel in world-space
-const float minDist = 0.0001;        // the distance from object threshold at which we consider a hit in raymarching
+const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
+const float maxDist = 50.0;         // the maximum distance the ray can travel in world-space
+const float minDist = 0.001;        // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
@@ -208,8 +208,15 @@ void    main() {
     dir = normalize((invView * vec4(dir, 0.0)).xyz);
 
     // convert depth buffer value to world depth
-    float depth = texture(depthBuffer, uv).x * 2.0 - 1.0;
-    depth = 2.0 * Near * Far / (Far + Near - depth * (Far - Near));
+    float depth = texture(depthBuffer, uv).x;
+    // depth = 2.0 * Near * Far / (Far + Near - depth * (Far - Near)); // not correclty computed
+
+    // NEW for depth to not disapear on edges
+    vec4 clipSpacePos = vec4(uv, depth, 1.0);
+    vec4 viewSpacePos = invProjection * clipSpacePos;
+    viewSpacePos /= viewSpacePos.w;
+    vec3 worldSpacePos = (invView * viewSpacePos).xyz;
+    depth = distance(cameraPos, worldSpacePos) / Far * 100.0; // ???? why that / 100.0 * 100.0 ????
 
     // raymarch
     vec4 res = raymarch(cameraPos, dir, depth);
@@ -217,13 +224,13 @@ void    main() {
     if (res.x > 0.0) {
         depth = res.x; // used for volumetric raymarching after for collision
         int id = int(res.w);
-        // // compute useful variables for light
+        /* compute useful variables for light */
         vec3 hit = cameraPos + dir * res.x;
         vec3 normal = getNormal(hit);
         vec3 viewDir = normalize(cameraPos - hit);
 
-        // compute colors
-        if (object[id].id == 0) { // mandelbox
+        /* compute colors */
+        if (object[id].id == 0) { /* mandelbox */
             float it = res.z / float(maxRaySteps);
             vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false, false);
@@ -256,21 +263,21 @@ void    main() {
                 if (res < 0.1*object[id].scale) { FragColor.xyz += clamp(colorFog * (0.1-t), 0.0, 10.0); break; }
             }
         }
-        else if (object[id].id == 1) { // mandelbulb
+        else if (object[id].id == 1) { /* mandelbulb */
             res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
             vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
             vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
             vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, true);
             FragColor = vec4(color, object[id].material.opacity);
         }
-        else if (object[id].id == 2) { // ifs
+        else if (object[id].id == 2) { /* IFS */
             float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
             vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
             vec3 diffuse = vec3(1.0, 0.694, 0.251);
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
             FragColor = vec4(light + log(glow * 0.95) * 0.75, 1.0);
         }
-        else {
+        else { /* default */
             vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
             FragColor = vec4(color, object[id].material.opacity);
         }
@@ -282,7 +289,7 @@ void    main() {
     vec4 color = vec4(0.0);
     for (int i = 0; i < MAX_OBJECTS && i < nObjects; i++) {
         if (object[i].id == 3 || object[i].id == 4) { // 3 and 4 are marble and cloud
-            vec3 pos = (object[i].invMat * vec4(vec3(0.0),-1.0)).xyz;
+            vec3 pos = (object[i].invMat * vec4(vec3(0.0), -1.0)).xyz;
             // vec3 pos = vec3(object[i].invMat[3][0], object[i].invMat[3][1], object[i].invMat[3][2]);
             vec4 sphere = vec4(pos, object[i].scale);
             vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
@@ -305,6 +312,7 @@ void    main() {
                 if (col.w + 0.8 > 0.0)
                     color.rgb *= 1.0 - min(col.w + 0.8, 1.0);
                 color += vec4(light, col.w + 0.8);
+                depth = distance(cameraPos, sphere.xyz);
             }
             else if (object[i].id == 4) { // CLOUD
                 vec4 col = raymarchVolume(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
@@ -326,9 +334,16 @@ void    main() {
     // {
     //     float near = 0.1;
     //     float far = 100.0;
-    //     float depth = texture(depthBuffer, uv).x;
-    //     float c = (2.0 * near) / (far + near - depth * (far - near));
-    //     FragColor = vec4(c, c, c, 1.0);
+    //     float depth = texture(depthBuffer, uv).x * 2.0 - 1.0;
+    //     // float c = (2.0 * near) / (far + near - depth * (far - near));
+    //     // FragColor = vec4(vec3(c), 1.0);
+
+    //     vec4 clipSpacePos = vec4(uv, depth, 1.0);
+    //     vec4 viewSpacePos = invProjection * clipSpacePos;
+    //     viewSpacePos /= viewSpacePos.w;
+    //     vec3 worldSpacePos = (invView * viewSpacePos).xyz;
+
+    //     FragColor = vec4(vec3( distance(cameraPos, worldSpacePos) / far), 1.0);
     // }
 }
 
@@ -346,11 +361,11 @@ vec3    map( in vec3 p ) {
         if (object[i].id == 0)
             new = vec3(mandelbox(pos), 0);
         else if (object[i].id == 1)
-            new = vec3(mandelbulb(pos), 1);
+            new = vec3(mandelbulb(pos), 0);
         else if (object[i].id == 2)
             new = vec3(ifs(pos), 0, 2);
         else if (object[i].id == 5)
-            new = vec3(torus(pos), 0, 4);
+            new = vec3(torus(pos), 0, 5);
 
         new.x *= object[i].scale;
         new.z = i;
@@ -485,14 +500,13 @@ float   smoothBox( vec3 p, vec3 s, float r ) {
     return length(max(abs(p) - s, 0.0)) - r;
 }
 
-
 vec2   mandelbulb( vec3 p ) {
     const float power = 8.0;
     vec3 z = p;
     float dr = 1.0;
     float r, theta, phi;
     float t0 = 1.0;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 4; i++) {
         r = length(z);
         if (r > 2.0) break;
         // convert to polar coordinates

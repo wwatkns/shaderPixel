@@ -50,7 +50,7 @@ private:
     Camera          camera;
     tShaderMap      shader;
     tDepthMap       depthMap;       // depth-map for the view fustrum
-    tDepthMap       shadowDepthMap; // depth map for the shadows
+    tDepthMap       shadowDepthMap; // depth-map for the shadows
     glm::mat4       lightSpaceMat;
     int             useShadows;
     float           framerate;

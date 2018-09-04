@@ -7,7 +7,6 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["default"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/default_frag.glsl");
     this->shader["skybox"]  = new Shader("./shader/vertex/skybox_vert.glsl", "./shader/fragment/skybox_frag.glsl");
     this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping_vert.glsl", "./shader/fragment/shadow_mapping_frag.glsl");
-    // this->shader["cloud"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/cloud_frag.glsl");
     this->shader["raymarch"] = new Shader("./shader/vertex/raymarch_vert.glsl", "./shader/fragment/raymarch_frag.glsl");
     this->lastTime = std::chrono::steady_clock::now();
     this->framerate = 60.0;
@@ -161,7 +160,7 @@ void    Renderer::renderShaders( void ) {
 
     /* geometry depth-buffer */
     glActiveTexture(GL_TEXTURE0);
-    this->shader["raymarch"]->setIntUniformValue("depthBuffer", 0); // `default` was the value before ????
+    this->shader["raymarch"]->setIntUniformValue("depthBuffer", 0);
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
 
     if (this->env->getRaymarched())

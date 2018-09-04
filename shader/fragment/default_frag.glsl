@@ -78,8 +78,8 @@ void main() {
     vec3 viewDir = normalize(viewPos - FragPos);
 
     vec3 result = computeDirectionalLight(directionalLight, gNormal, viewDir, FragPosLightSpace);
-    // for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
-        // result += computePointLight(pointLights[i], gNormal, FragPos, viewDir);
+    for (int i = 0; i < nPointLights && i < MAX_POINT_LIGHTS; ++i)
+        result += computePointLight(pointLights[i], gNormal, FragPos, viewDir);
 
     FragColor = vec4(result, 1.0f);
     FragColor.w = material.opacity;
