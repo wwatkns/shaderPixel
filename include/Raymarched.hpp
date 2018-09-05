@@ -35,6 +35,7 @@ typedef struct  sObject {
     glm::vec3       position;
     glm::vec3       orientation;
     float           scale;
+    float           boundingSphereScale;
     float           speedMod;
     tMaterial       material;
 }               tObject;

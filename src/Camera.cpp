@@ -11,7 +11,7 @@ Camera::Camera( float fov, float aspect, float near, float far ) : aspect(aspect
     this->pitch = 0;
     this->yaw = 0;
     this->last = std::chrono::steady_clock::now();
-    this->speed = 0.005;//2;//0.0025;
+    this->speed = 0.02;//0.0025;
     this->speedmod = 1.0;
 }
 

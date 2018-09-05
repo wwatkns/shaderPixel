@@ -20,6 +20,7 @@ struct sMaterial {
 struct sObject {
     int         id;
     float       scale;
+    float       boundingSphereScale;
     mat4        invMat;
     sMaterial   material;
 };
@@ -59,10 +60,15 @@ const float minDistShadow = 0.005;  // the distance from object threshold at whi
 /* prototypes */
 vec4    raymarch( in vec3 ro, in vec3 rd, float s );
 vec3    getNormal( in vec3 p );
+vec3    map( in vec3 p );
+
+vec4    raymarchObj( in vec3 ro, in vec3 rd, float s, int i );
+vec3    getNormalObj( in vec3 p, int i );
+vec3    mapObj( in vec3 p, int i );
+
 vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion );
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
 float   ambientOcclusion( in vec3 hit, in vec3 normal );
-vec3    map( in vec3 p );
 float   fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 float   fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 
@@ -215,6 +221,7 @@ float   linearizeDepth( float depth ) {
     return 2.0 * Near * Far / (Far + Near - z * (Far - Near));
 }
 
+
 void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
     vec3 ndc = vec3(uv * 2.0 - 1.0, -1.0);
@@ -227,16 +234,37 @@ void    main() {
     float depth = texture(depthBuffer, uv).x;
     depth = distance(cameraPos, worldPosFromDepth(depth, ndc));
 
+    /* Bounding sphere optimisation */
+    vec4 res = vec4(0.0);
+    for (int i = 0; i < MAX_OBJECTS && i < nObjects; i++) {
+        if (object[i].id != 3 && object[i].id != 4) {
+            vec3 pos = (object[i].invMat * vec4(vec3(0.0), -1.0)).xyz;
+            vec4 sphere = vec4(pos, object[i].scale * object[i].boundingSphereScale);
+            vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
+            if (bounds.x < 0.0) { continue ; }
+
+            vec3 ro = cameraPos + dir * bounds.x;
+            vec4 tmp = raymarchObj(ro, dir, depth, i);
+
+            // res.z = tmp.z; // keep correct number of iterations for debug
+            if (tmp.x > 0.0) {
+                tmp.x += bounds.x;
+                if (tmp.x < res.x || res.x == 0.0)
+                    res = tmp;
+            }
+        }
+    }
+
     // raymarch
-    vec4 res = raymarch(cameraPos, dir, depth);
+    // vec4 res = raymarch(cameraPos, dir, depth);
     FragColor = vec4(0.0);
     if (res.x > 0.0) {
         depth = res.x; // used for volumetric raymarching after for collision
         int id = int(res.w);
         /* compute useful variables for light */
         vec3 hit = cameraPos + dir * res.x;
-        vec3 normal = getNormal(hit);
-        vec3 viewDir = normalize(cameraPos - hit);
+        vec3 normal = getNormalObj(hit, int(res.w));
+        vec3 viewDir = -dir;
 
         /* compute colors */
         if (object[id].id == 0) { /* mandelbox */
@@ -280,7 +308,7 @@ void    main() {
             FragColor = vec4(color, object[id].material.opacity);
         }
         else if (object[id].id == 2) { /* IFS */
-            float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
+            float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05; // /!\ put back to res.z the res.w
             vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
             vec3 diffuse = vec3(1.0, 0.694, 0.251);
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
@@ -393,6 +421,42 @@ vec3    getNormal( in vec3 p ) {
     return normalize(vec3(map(p + eps.xyy).x - map(p - eps.xyy).x,
                           map(p + eps.yxy).x - map(p - eps.yxy).x,
                           map(p + eps.yyx).x - map(p - eps.yyx).x));
+}
+
+vec3    mapObj( in vec3 p, int i ) {
+    vec3 pos = p;
+    vec3 res = vec3(Far, 0., i);
+
+    pos = (object[i].invMat * vec4(p, 1.0)).xyz / object[i].scale;
+    if (object[i].id == 0)
+        res.xy = mandelbox(pos);
+    else if (object[i].id == 1)
+        res.xy = mandelbulb(pos);
+    else if (object[i].id == 2)
+        res.x = ifs(pos);
+    else if (object[i].id == 5)
+        res.x = torus(pos);
+    res.x *= object[i].scale;
+    return res;
+}
+
+vec4    raymarchObj( in vec3 ro, in vec3 rd, float s, int obj ) {
+	float t = 0.0;
+    ro += rd * minDist * random(gl_FragCoord.xy/256.);
+	for (int i = 0; i < maxRaySteps; i++) {
+        vec3 res = mapObj(ro + rd * t, obj);
+		t += res.x;
+        if (t > maxDist || t > s) return vec4(0.0, 0.0, i, 0.0); // optimization and geometry occlusion
+		if (res.x < minDist) return vec4(t, res.y, i, res.z);
+	}
+	return vec4(0.0, 0.0, maxRaySteps, 0.0);
+}
+
+vec3    getNormalObj( in vec3 p, int i ) {
+    const vec2 eps = vec2(minDist, 0.0);
+    return normalize(vec3(mapObj(p + eps.xyy, i).x - mapObj(p - eps.xyy, i).x,
+                          mapObj(p + eps.yxy, i).x - mapObj(p - eps.yxy, i).x,
+                          mapObj(p + eps.yyx, i).x - mapObj(p - eps.yyx, i).x));
 }
 
 vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion ) {
@@ -510,8 +574,8 @@ vec2   mandelbulb(vec3 pos) {
 		r = length(z);
 		if (r > 2.0) break;
 		// convert to polar coordinates
-		float theta = acos(z.z/r);
-		float phi = atan(z.y,z.x);
+		float theta = acos(z.z/r) + uTime * 0.1;
+		float phi = atan(z.y,z.x) + uTime * 0.05;
 		dr =  pow(r, 7.0)*8.0*dr + 1.0;
 		// scale and rotate the point
 		float zr = pow(r, 8.0);

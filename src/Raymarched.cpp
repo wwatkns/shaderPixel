@@ -82,6 +82,7 @@ void    Raymarched::render( Shader shader ) {
 
         shader.setIntUniformValue(name+"id", static_cast<int>(this->objects[i].id));
         shader.setFloatUniformValue(name+"scale", this->objects[i].scale);
+        shader.setFloatUniformValue(name+"boundingSphereScale", this->objects[i].boundingSphereScale);
         shader.setMat4UniformValue(name+"invMat", glm::inverse(mat));
     }
     

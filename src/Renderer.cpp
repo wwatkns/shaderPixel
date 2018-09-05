@@ -9,11 +9,13 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping_vert.glsl", "./shader/fragment/shadow_mapping_frag.glsl");
     this->shader["raymarch"] = new Shader("./shader/vertex/raymarch_vert.glsl", "./shader/fragment/raymarch_frag.glsl");
     this->lastTime = std::chrono::steady_clock::now();
-    this->framerate = 30.0;
+    this->framerate = 60.0;
 
     this->initDepthMap();
     this->initShadowDepthMap(4096, 4096);
     
+    this->videoCapture = NULL;
+    #if 0
     this->videoCapture = new VideoCapture(
         "./test.mov",
         this->env->getWindow().width,
@@ -22,6 +24,7 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
         eCodec::avc1,
         8.0
     );
+    #endif
 
     this->useShadows = 0;
 }
