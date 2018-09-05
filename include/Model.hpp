@@ -23,7 +23,8 @@
 class Model {
 
 public:
-    Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
+    Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ); // constructor from existing meshes
+    Model( const std::vector<Mesh*> meshes, const std::vector<tTexture> textures, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
     Model( const std::vector<std::string>& paths );  // cubemap constructor
     Model( const glm::vec3& position, const glm::vec3& scale ); // billboard constructor
     ~Model( void );
@@ -36,6 +37,9 @@ public:
     const glm::vec3&    getPosition( void ) const { return (position); };
     const glm::vec3&    getOrientation( void ) const { return (orientation); };
     const glm::vec3&    getScale( void ) const { return (scale); };
+
+    const std::vector<Mesh*>    getMeshes( void ) const { return (meshes); };
+    const std::vector<tTexture> getTextures( void ) const { return (textures_loaded); };
     /* setters */
     void                setPosition( const glm::vec3& t ) { position = t; };
     void                setOrientation( const glm::vec3& r ) { orientation = r; };
@@ -50,6 +54,7 @@ private:
     std::vector<Mesh*>      meshes;
     std::string             directory;
     std::vector<tTexture>   textures_loaded;
+    bool                    meshClone;
 
     void                    loadModel( const std::string& path );
     void                    processNode( aiNode* node, const aiScene* scene );

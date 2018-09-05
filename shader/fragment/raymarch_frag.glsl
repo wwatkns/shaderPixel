@@ -254,9 +254,9 @@ void    main() {
             }
         }
     }
-
-    // raymarch
     // vec4 res = raymarch(cameraPos, dir, depth);
+
+    /* Colorize the object */
     FragColor = vec4(0.0);
     if (res.x > 0.0) {
         depth = res.x; // used for volumetric raymarching after for collision
@@ -270,35 +270,9 @@ void    main() {
         if (object[id].id == 0) { /* mandelbox */
             float it = res.z / float(maxRaySteps);
             vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
-            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, vec3(0.898, 0.325, 0.7231), false, false);
-            vec2 st = hit.xy * 10;
-            vec2 grid = vec2(100.0, 50.0);
-            st *= grid;
-            vec2 ipos = floor(st);
-            vec2 fpos = fract(st);
-            vec2 vel = vec2(uTime * 0.3 * max(grid.x, grid.y));
-            vel *= vec2(-1.0, 0.0) * random(1.0 + ipos.y);
-            vec2 offset = vec2(0.1, 0.);
-            vec3 patt = vec3(0.);
-            patt.r = pattern(st + offset, vel, 0.5 + 0.1);
-            patt.g = pattern(st, vel, 0.5 + 0.1);
-            patt.b = pattern(st - offset, vel, 0.5 + 0.1);
-            patt *= step(0.2, fpos.y);
-            patt = (1.0-patt * 0.7) * vec3(1.0, 0.73, 0.3) * 1.5;
-            // float r = 2.0*fbm2d(hit.xy + fbm2d(hit.xy + uTime*0.01, 0.85, 3.0, 16, 3.0, 0.5), 0.85, 3.0, 16, 6.0, 0.5);
-            FragColor = vec4(patt * light * color * vec3(0.9, 0.517, 0.345) * 1.2, -log(it)*2.0);
-            /* add fog if we're in cube */
-            float fog = res.x * 0.5 / object[id].scale * 12.0;
-            vec3 colorFog = fog * fog * vec3(0.9, 0.517, 0.345) * 0.5;
-            float t = 0.0;
-            for (int i = 0; i < 10; i++) {
-                float scale = object[id].scale;
-                vec3 p = (object[id].invMat * vec4(cameraPos + dir * t, 1.0)).xyz / scale;
-                float res = cube(p) * scale;
-                t += res;
-                if (t > maxDist || t > depth) break;
-                if (res < 0.1*object[id].scale) { FragColor.xyz += clamp(colorFog * (0.1-t), 0.0, 10.0); break; }
-            }
+            vec3 diffuse = vec3(0.898, 0.325, 0.7231) * 0.5;
+            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
+            FragColor = vec4(light * color, 1.0);
         }
         else if (object[id].id == 1) { /* mandelbulb */
             res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
@@ -308,7 +282,7 @@ void    main() {
             FragColor = vec4(color, object[id].material.opacity);
         }
         else if (object[id].id == 2) { /* IFS */
-            float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05; // /!\ put back to res.z the res.w
+            float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
             vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
             vec3 diffuse = vec3(1.0, 0.694, 0.251);
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
@@ -588,19 +562,18 @@ vec2   mandelbulb(vec3 pos) {
 	return vec2(0.25*log(r)*r/dr, t0);
 }
 
+/* mandelbox variables */
+const float min_radius = 0.25;
+const float scale = 2.0;
+const int iters = 10;
+const float minRadius2 = min_radius * min_radius;
+const vec4 scalevec = vec4(scale, scale, scale, abs(scale)) / minRadius2;
+const float C1 = abs(scale - 1.0), C2 = pow(abs(scale), float(1 - iters));
+
 vec2   mandelbox( vec3 p ) {
-    const float fold_limit = 1.0;
-    const float fold_value = 2.0;
-    const float min_radius = 0.5;
-    const float scale = 2.0;
-    const float minRadius2 = min_radius * min_radius;
-
-    const vec4 scalevec = vec4(scale, scale, scale, abs(scale)) / minRadius2;
-    const float C1 = abs(scale - 1.0), C2 = pow(abs(scale), float(1 - 12));
-
     vec4 z = vec4(p.xyz * 6.0, 1.0), p0 = vec4(p.xyz * 6.0, 1.0);
     float t0 = 1.0;
-    for (int i = 0; i < 13; i++) {
+    for (int i = 0; i < iters; i++) {
         z.xyz = clamp(z.xyz, -1.0, 1.0) * 2.0 - z.xyz;  // box fold
         float r2 = dot(z.xyz, z.xyz);
         z.xyzw *= clamp(max(minRadius2 / r2, minRadius2), 0.0, 1.0);  // sphere fold
@@ -610,7 +583,7 @@ vec2   mandelbox( vec3 p ) {
 	return vec2(((length(z.xyz) - C1) / z.w - C2) / 6.0, t0);
 }
 
-float   ifs(vec3 p) {
+float   ifs( vec3 p ) {
     float ui = 100.0 * uTime * 0.1;
     float y = -0.001 * ui;
     mat2  m = mat2(sin(y), cos(y), -cos(y), sin(y));

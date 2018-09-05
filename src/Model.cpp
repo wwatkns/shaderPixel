@@ -18,6 +18,13 @@ Model::Model( const std::string& path, const glm::vec3& position, const glm::vec
     /* sort the meshes by transparency of material */
     std::sort(this->meshes.begin(), this->meshes.end(), sortByTransparency);
     this->update();
+    this->meshClone = false;
+}
+
+Model::Model( const std::vector<Mesh*> meshes, const std::vector<tTexture> textures, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ) :
+position(position), orientation(orientation), scale(scale), meshes(meshes), textures_loaded(textures) {
+    this->update();
+    this->meshClone = true;
 }
 
 /* this constructor will create a cubemap */
@@ -46,6 +53,7 @@ Model::Model( const std::vector<std::string>& paths ) : position(glm::vec3(0, 0,
 
     this->meshes.push_back(new Mesh(vertices, indices, textures, material));
     this->update();
+    this->meshClone = false;
 }
 
 /* this constructor will create a quad (used to render fractals shaders, ...) */
@@ -75,12 +83,14 @@ Model::Model( const glm::vec3& position, const glm::vec3& scale ) : position(pos
     tMaterial material = (tMaterial){ glm::vec3(0,0,0), glm::vec3(1,1,1), glm::vec3(0,0,0), 0.0f };
     this->meshes.push_back(new Mesh(vertices, indices, textures, material));
     this->update();
+    this->meshClone = false;
 }
 
 
 Model::~Model( void ) {
-    for (unsigned int i = 0; i < this->meshes.size(); ++i)
-        delete this->meshes[i];
+    if (!this->meshClone)
+        for (unsigned int i = 0; i < this->meshes.size(); ++i)
+            delete this->meshes[i];
 }
 
 void    Model::render( Shader shader ) {
