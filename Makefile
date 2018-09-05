@@ -14,12 +14,14 @@ INC_PATH = ./include/ \
 		   $(LIB_PATH)$(LIB_GLFW_NAME)/include/ \
 		   $(LIB_PATH)$(LIB_GLAD_NAME)/include/ \
 		   $(LIB_PATH)$(LIB_GLM_NAME)/ \
-		   $(LIB_PATH)$(LIB_ASSIMP_NAME)/include/
+		   $(LIB_PATH)$(LIB_ASSIMP_NAME)/include/ \
+		   /usr/local/Cellar/opencv/3.4.2/include
 
 CC_FLGS = -std=c++11 -Ofast #-Werror -Wextra -Wall
-CC_LIBS = -lassimp -lglfw3 -framework AppKit -framework OpenGL -framework IOKit -framework CoreVideo
+CC_LIBS = -lassimp -lglfw3 -framework AppKit -framework OpenGL -framework IOKit -framework CoreVideo \
+		  -lopencv_core -lopencv_videoio -lopencv_imgproc
 
-SRC_NAME = main.cpp Raymarched.cpp Light.cpp Mesh.cpp Model.cpp Camera.cpp Controller.cpp Env.cpp Renderer.cpp Shader.cpp utils.cpp
+SRC_NAME = main.cpp Raymarched.cpp Light.cpp Mesh.cpp Model.cpp Camera.cpp Controller.cpp Env.cpp Renderer.cpp Shader.cpp utils.cpp VideoCapture.cpp
 OBJ_NAME = $(SRC_NAME:.cpp=.o)
 
 SRC = $(addprefix $(SRC_PATH), $(SRC_NAME))

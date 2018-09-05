@@ -20,6 +20,7 @@
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "Light.hpp"
+#include "VideoCapture.hpp"
 
 typedef struct  sDepthMap {
     unsigned int    id;
@@ -54,6 +55,7 @@ private:
     glm::mat4       lightSpaceMat;
     int             useShadows;
     float           framerate;
+    VideoCapture*   videoCapture;
 
     tTimePoint      lastTime;
 

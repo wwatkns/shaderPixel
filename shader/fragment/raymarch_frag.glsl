@@ -199,24 +199,33 @@ vec4    raymarchVolumeMarble( in vec3 ro, in vec3 rd, in vec2 bounds, float radi
 	return sum;
 }
 
+// https://stackoverflow.com/questions/32227283/getting-world-position-from-depth-buffer-value
+vec3    worldPosFromDepth( float depth, vec3 ndc ) {
+    float z = depth * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(ndc.xy, z, 1.0);
+    vec4 viewSpacePosition = invProjection * clipSpacePosition;
+    viewSpacePosition /= viewSpacePosition.w;
+    vec4 worldSpacePosition = invView * viewSpacePosition;
+    return worldSpacePosition.xyz;
+}
+
+float   linearizeDepth( float depth ) {
+    float z = depth * 2.0 - 1.0;
+    return 2.0 * Near * Far / (Far + Near - z * (Far - Near));
+}
+
 void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
     vec3 ndc = vec3(uv * 2.0 - 1.0, -1.0);
 
-    // direction is converted from ndc to world-space
+    /* direction is converted from ndc to world-space */
     vec3 dir = (invProjection * vec4(ndc, 1.0)).xyz;
     dir = normalize((invView * vec4(dir, 0.0)).xyz);
 
-    // convert depth buffer value to world depth
+    /* depth-buffer value conversion to world space (for correct distance for) */
     float depth = texture(depthBuffer, uv).x;
-    // depth = 2.0 * Near * Far / (Far + Near - depth * (Far - Near)); // not correclty computed
-
-    // NEW for depth to not disapear on edges
-    vec4 clipSpacePos = vec4(uv, depth, 1.0);
-    vec4 viewSpacePos = invProjection * clipSpacePos;
-    viewSpacePos /= viewSpacePos.w;
-    vec3 worldSpacePos = (invView * viewSpacePos).xyz;
-    depth = distance(cameraPos, worldSpacePos) / Far * 100.0; // ???? why that / 100.0 * 100.0 ????
+    depth = distance(cameraPos, worldPosFromDepth(depth, ndc));
 
     // raymarch
     vec4 res = raymarch(cameraPos, dir, depth);
@@ -290,7 +299,6 @@ void    main() {
     for (int i = 0; i < MAX_OBJECTS && i < nObjects; i++) {
         if (object[i].id == 3 || object[i].id == 4) { // 3 and 4 are marble and cloud
             vec3 pos = (object[i].invMat * vec4(vec3(0.0), -1.0)).xyz;
-            // vec3 pos = vec3(object[i].invMat[3][0], object[i].invMat[3][1], object[i].invMat[3][2]);
             vec4 sphere = vec4(pos, object[i].scale);
             vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
             if (bounds.x < 0.0) { continue ; }
@@ -332,18 +340,9 @@ void    main() {
     // }
     // depth-buffer debug
     // {
-    //     float near = 0.1;
-    //     float far = 100.0;
     //     float depth = texture(depthBuffer, uv).x * 2.0 - 1.0;
-    //     // float c = (2.0 * near) / (far + near - depth * (far - near));
-    //     // FragColor = vec4(vec3(c), 1.0);
-
-    //     vec4 clipSpacePos = vec4(uv, depth, 1.0);
-    //     vec4 viewSpacePos = invProjection * clipSpacePos;
-    //     viewSpacePos /= viewSpacePos.w;
-    //     vec3 worldSpacePos = (invView * viewSpacePos).xyz;
-
-    //     FragColor = vec4(vec3( distance(cameraPos, worldSpacePos) / far), 1.0);
+    //     float c = (2.0 * Near * Far) / (Far + Near - depth * (Far - Near));
+    //     FragColor = vec4(vec3(c) / Far, 1.0);
     // }
 }
 
@@ -359,13 +358,15 @@ vec3    map( in vec3 p ) {
         pos = (object[i].invMat * vec4(p, 1.0)).xyz / object[i].scale;
 
         if (object[i].id == 0)
-            new = vec3(mandelbox(pos), 0);
+            new = vec3(mandelbox(pos), 0.);
         else if (object[i].id == 1)
-            new = vec3(mandelbulb(pos), 0);
+            new = vec3(mandelbulb(pos), 1.);
         else if (object[i].id == 2)
-            new = vec3(ifs(pos), 0, 2);
+            new = vec3(ifs(pos), 0., 2.);
         else if (object[i].id == 5)
-            new = vec3(torus(pos), 0, 5);
+            new = vec3(torus(pos), 0., 5.);
+        else
+            new = vec3(100000., 0., 3.);
 
         new.x *= object[i].scale;
         new.z = i;
@@ -377,7 +378,7 @@ vec3    map( in vec3 p ) {
 /* return: distance, trap, ray_iterations, object_id */
 vec4    raymarch( in vec3 ro, in vec3 rd, float s ) {
 	float t = 0.0;
-    ro += rd * minDist * random(gl_FragCoord.xy/256);
+    ro += rd * minDist * random(gl_FragCoord.xy/256.);
 	for (int i = 0; i < maxRaySteps; i++) {
         vec3 res = map(ro + rd * t);
 		t += res.x;
@@ -500,30 +501,27 @@ float   smoothBox( vec3 p, vec3 s, float r ) {
     return length(max(abs(p) - s, 0.0)) - r;
 }
 
-vec2   mandelbulb( vec3 p ) {
-    const float power = 8.0;
-    vec3 z = p;
-    float dr = 1.0;
-    float r, theta, phi;
+vec2   mandelbulb(vec3 pos) {
+	vec3 z = pos;
+	float dr = 1.0;
+	float r = 0.0;
     float t0 = 1.0;
-    for (int i = 0; i < 4; i++) {
-        r = length(z);
-        if (r > 2.0) break;
-        // convert to polar coordinates
-        theta = asin(z.z / r) + uTime * 0.1;
-        phi = atan(z.y, z.x);// + uTime * 0.05;
-        float rpow = pow(r, power - 1.0);
-        dr = rpow * power * dr + 1.0;
-        // scale and rotate the point
-        r = rpow * r;
-        theta = theta * power;
-        phi = phi * power;
-        // convert back to cartesian coordinates
-        float cosTheta = cos(theta);
-        z = r * vec3(cosTheta * cos(phi), sin(phi) * cosTheta, sin(theta)) + p;
-        t0 = min(t0, r);
+	for (int i = 0; i < 4; i++) {
+		r = length(z);
+		if (r > 2.0) break;
+		// convert to polar coordinates
+		float theta = acos(z.z/r);
+		float phi = atan(z.y,z.x);
+		dr =  pow(r, 7.0)*8.0*dr + 1.0;
+		// scale and rotate the point
+		float zr = pow(r, 8.0);
+		theta = theta*8.0;
+		phi = phi*8.0;
+		// convert back to cartesian coordinates
+		z = zr*vec3(sin(theta)*cos(phi), sin(phi)*sin(theta), cos(theta)) + pos;
+        t0 = min(t0, zr);
 	}
-	return vec2((0.5 * log(r) * r / dr), t0);
+	return vec2(0.25*log(r)*r/dr, t0);
 }
 
 vec2   mandelbox( vec3 p ) {
