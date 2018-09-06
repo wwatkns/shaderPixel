@@ -69,7 +69,7 @@ vec3    gNormal;
 /* prototypes */
 vec3    computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec4 fragPosLightSpace );
 vec3    computePointLight( sPointLight light, vec3 normal, vec3 fragPos,vec3 viewDir );
-float   computeShadows( vec4 fragPosLightSpace, sDirectionalLight light );
+float   computeShadows( vec4 fragPosLightSpace );
 void    handleStates( void );
 
 
@@ -111,7 +111,7 @@ vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir
     vec3 specular = light.specular * spec * gSpecular;
 
     if (state.use_shadows) {
-        float shadow  = computeShadows(fragPosLightSpace, light);
+        float shadow  = computeShadows(fragPosLightSpace);
         return (gEmissive + ambient + (1.0 - shadow) * (diffuse + specular));
     }
     return (gEmissive + ambient + (diffuse + specular));
@@ -135,18 +135,12 @@ vec3 computePointLight( sPointLight light, vec3 normal, vec3 fragPos, vec3 viewD
     return (gEmissive + ambient + diffuse + specular);
 }
 
-float computeShadows( vec4 fragPosLightSpace, sDirectionalLight light ) {
-    /* perform perspective divide and put in interval [0,1] */
+float computeShadows( vec4 fragPosLightSpace ) {
     vec3 projCoords = (fragPosLightSpace.xyz / fragPosLightSpace.w) * 0.5 + 0.5;
-    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-    // calculate bias (based on depth map resolution and slope)
-    vec3 normal = normalize(Normal);
-    vec3 lightDir = normalize(light.position - FragPos);
     float bias = 0.0025;
     /* Default */
+    // float closestDepth = texture(shadowMap, projCoords.xy).r;
     // float shadow = (currentDepth - bias > closestDepth ? 1.0 : 0.0);
     /* PCF */
     float shadow = 0.0;
@@ -157,9 +151,5 @@ float computeShadows( vec4 fragPosLightSpace, sDirectionalLight light ) {
             shadow += (currentDepth - bias > pcfDepth ? 1.0 : 0.0);
         }
     }
-    shadow /= 9.0;
-    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
-    if (projCoords.z > 1.0)
-        shadow = 0.0;
-    return (shadow);
+    return (projCoords.z > 1.0 ? 0.0 : shadow / 9.0);
 }

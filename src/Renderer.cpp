@@ -4,10 +4,10 @@
 Renderer::Renderer( Env* env ) :
 env(env),
 camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
-    this->shader["default"] = new Shader("./shader/vertex/default_vert.glsl", "./shader/fragment/default_frag.glsl");
-    this->shader["skybox"]  = new Shader("./shader/vertex/skybox_vert.glsl", "./shader/fragment/skybox_frag.glsl");
-    this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping_vert.glsl", "./shader/fragment/shadow_mapping_frag.glsl");
-    this->shader["raymarch"] = new Shader("./shader/vertex/raymarch_vert.glsl", "./shader/fragment/raymarch_frag.glsl");
+    this->shader["default"] = new Shader("./shader/vertex/default.vert.glsl", "./shader/fragment/default.frag.glsl");
+    this->shader["skybox"]  = new Shader("./shader/vertex/skybox.vert.glsl", "./shader/fragment/skybox.frag.glsl");
+    this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping.vert.glsl", "./shader/fragment/shadow_mapping.frag.glsl");
+    this->shader["raymarch"] = new Shader("./shader/vertex/raymarch.vert.glsl", "./shader/fragment/raymarch.frag.glsl");
     this->lastTime = std::chrono::steady_clock::now();
     this->framerate = 60.0;
 
@@ -169,8 +169,7 @@ void    Renderer::renderShaders( void ) {
 
     this->shader["raymarch"]->use();
     this->shader["raymarch"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat); // NEW
-    this->shader["raymarch"]->setIntUniformValue("use_m_shadows", this->useShadows); // NEW
-
+    this->shader["raymarch"]->setIntUniformValue("use_shadows", this->useShadows);
     this->shader["raymarch"]->setMat4UniformValue("invProjection", this->camera.getInvProjectionMatrix());
     this->shader["raymarch"]->setMat4UniformValue("invView", this->camera.getInvViewMatrix());
     this->shader["raymarch"]->setFloatUniformValue("near", this->camera.getNear());

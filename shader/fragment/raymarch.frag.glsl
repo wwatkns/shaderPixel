@@ -34,7 +34,7 @@ in float Far;
 
 uniform sampler2D depthBuffer;
 uniform sampler2D shadowMap; // NEW
-uniform bool use_m_shadows;
+uniform bool use_shadows;
 uniform samplerCube skybox;
 uniform sampler2D noiseSampler;
 uniform sObject object[MAX_OBJECTS];
@@ -275,25 +275,25 @@ void    main() {
             float it = res.z / float(maxRaySteps);
             vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
             vec3 diffuse = vec3(0.898, 0.325, 0.7231) * 0.5;
-            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
+            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, use_shadows, false);
             FragColor = vec4(light * color, 1.0);
         }
         else if (object[id].id == 1) { /* mandelbulb */
             res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
             vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
             vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
-            vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, true);
+            vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, use_shadows, true);
             FragColor = vec4(color, object[id].material.opacity);
         }
         else if (object[id].id == 2) { /* IFS */
             float g = pow(2.0 + res.z / float(maxRaySteps), 4.0) * 0.05;
             vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
             vec3 diffuse = vec3(1.0, 0.694, 0.251);
-            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, true, false);
+            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, use_shadows, false);
             FragColor = vec4(light + log(glow * 0.95) * 0.75, 1.0);
         }
         else { /* default */
-            vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, true, true);
+            vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, use_shadows, false);
             FragColor = vec4(color, object[id].material.opacity);
         }
     }
@@ -316,7 +316,7 @@ void    main() {
 
                 vec4 col = raymarchVolumeMarble(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
                 col.xyz = clamp(vec3(0.0, 0.0, 0.03) + col.xyz, 0.0, 1.0);
-                vec3 light = computeDirectionalLight(i, hit + sphere.xyz, normal, viewDir, col.xyz, true, false);
+                vec3 light = computeDirectionalLight(i, hit + sphere.xyz, normal, viewDir, col.xyz, use_shadows, false);
                 /* fresnel specular reflection */
                 if (bounds.x > 0.0) {
                     vec3 spec = pow(texture(skybox, reflect(dir, hit)).rgb, vec3(2.2));
@@ -437,35 +437,24 @@ vec3    getNormalObj( in vec3 p, int i ) {
                           mapObj(p + eps.yyx, i).x - mapObj(p - eps.yyx, i).x));
 }
 
-float computeMeshesShadows( vec3 hit, vec3 normal, sDirectionalLight light ) {
+float   computeMeshesShadows( vec3 hit, vec3 normal ) {
     vec4 posLightSpace = lightSpaceMat * vec4(hit, 1.0);
-    /* perform perspective divide and put in interval [0,1] */
     vec3 projCoords = (posLightSpace.xyz / posLightSpace.w) * 0.5 + 0.5;
-    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-    // calculate bias (based on depth map resolution and slope)
-    vec3 lightDir = normalize(light.position - hit);
     float bias = 0.0025;
     /* Default */
-    // float shadow = (currentDepth - bias > closestDepth ? 1.0 : 0.0);
+    // float closestDepth = texture(shadowMap, projCoords.xy).r;
+    // float shadow = (projCoords.z - bias > closestDepth ? 1.0 : 0.0);
     /* PCF */
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for (int x = -1; x <= 1; ++x) {
         for (int y = -1; y <= 1; ++y) {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += (currentDepth - bias > pcfDepth ? 1.0 : 0.0);
+            shadow += (projCoords.z - bias > pcfDepth ? 1.0 : 0.0);
         }
     }
-    shadow /= 9.0;
-    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
-    if (projCoords.z > 1.0)
-        shadow = 0.0;
-    return (shadow);
+    return (projCoords.z > 1.0 ? 0.0 : shadow / 9.0);
 }
-
 
 vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion ) {
     vec3 lightDir = normalize(directionalLight.position);
@@ -483,7 +472,7 @@ vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3
     vec3 specular = directionalLight.specular * spec * object[objId].material.specular;
 
     /* NEW - compute meshes shadows */
-    float mShadow = use_m_shadows ? 1.0 - computeMeshesShadows(hit, normal, directionalLight) : 1.0;
+    float mShadow = (use_shadows ? 1.0 - computeMeshesShadows(hit, normal) : 1.0);
 
     return ambient + (diffuse + specular) * mShadow * shadow * ao;
 }
