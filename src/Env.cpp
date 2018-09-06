@@ -65,7 +65,7 @@ Env::Env( void ) {
                 1.0, // scale
                 1.0, // bs scale
                 1.0, // speed modifier
-                (tMaterial){ glm::vec3(0.0), glm::vec3(1.0), glm::vec3(0.0), 1.0, 1.0 }
+                (tMaterial){ glm::vec3(0.0), glm::vec3(1.0), glm::vec3(1.0), 2048.0, 1.0 }
             },
             (tObject){
                 eRaymarchObject::cloud,

@@ -55,6 +55,10 @@ void	Renderer::loop( void ) {
 
         this->useShadows = this->env->getController()->getKeyValue(GLFW_KEY_P);
 
+        this->env->getLights()[0]->setPosition(
+            glm::vec3(glm::sin(glfwGetTime() * 0.125 + 2.) * 50., 15., glm::cos(glfwGetTime()*0.125 + 2.) * 28.)
+        );
+
         this->updateShadowDepthMap();
         this->renderLights();
         this->renderMeshes();
@@ -86,10 +90,7 @@ void    Renderer::updateShadowDepthMap( void ) {
     Light*  directionalLight = this->env->getDirectionalLight();
     if (this->useShadows && directionalLight) {
         glm::mat4 lightProjection, lightView;
-        // float near_plane = 0.1f, far_plane = 35.0f;
-        // lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
-        float near_plane = 0.1f, far_plane = 100.0f;
-        lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
+        lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, this->camera.getNear(), this->camera.getFar());
         lightView = glm::lookAt(directionalLight->getPosition(), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         this->lightSpaceMat = lightProjection * lightView;
         /* render scene from light's point of view */
@@ -167,6 +168,9 @@ void    Renderer::renderShaders( void ) {
     glDisable(GL_DEPTH_TEST);
 
     this->shader["raymarch"]->use();
+    this->shader["raymarch"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat); // NEW
+    this->shader["raymarch"]->setIntUniformValue("use_m_shadows", this->useShadows); // NEW
+
     this->shader["raymarch"]->setMat4UniformValue("invProjection", this->camera.getInvProjectionMatrix());
     this->shader["raymarch"]->setMat4UniformValue("invView", this->camera.getInvViewMatrix());
     this->shader["raymarch"]->setFloatUniformValue("near", this->camera.getNear());
@@ -180,6 +184,10 @@ void    Renderer::renderShaders( void ) {
     glActiveTexture(GL_TEXTURE0);
     this->shader["raymarch"]->setIntUniformValue("depthBuffer", 0);
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
+
+    glActiveTexture(GL_TEXTURE1);
+    this->shader["raymarch"]->setIntUniformValue("shadowMap", 1);
+    glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
 
     if (this->env->getRaymarched())
         this->env->getRaymarched()->render(*this->shader["raymarch"]);

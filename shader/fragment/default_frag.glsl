@@ -98,7 +98,7 @@ void    handleStates( void ) {
 }
 
 vec3 computeDirectionalLight( sDirectionalLight light, vec3 normal, vec3 viewDir, vec4 fragPosLightSpace ) {
-    vec3 lightDir = normalize(-(vec3(0, 0, 0) - light.position));
+    vec3 lightDir = normalize(light.position);
     /* diffuse */
     float diff = max(dot(normal, lightDir), 0.0);
     /* specular */

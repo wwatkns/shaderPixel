@@ -33,6 +33,8 @@ in float Far;
 #define MAX_OBJECTS 8
 
 uniform sampler2D depthBuffer;
+uniform sampler2D shadowMap; // NEW
+uniform bool use_m_shadows;
 uniform samplerCube skybox;
 uniform sampler2D noiseSampler;
 uniform sObject object[MAX_OBJECTS];
@@ -41,6 +43,8 @@ uniform int nObjects;
 uniform sDirectionalLight directionalLight;
 uniform mat4 invProjection;
 uniform mat4 invView;
+uniform mat4 lightSpaceMat; // NEW
+
 uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 cameraPos;
@@ -305,15 +309,15 @@ void    main() {
             vec2 bounds = raySphere(cameraPos, dir, sphere, depth);
             if (bounds.x < 0.0) { continue ; }
 
-            if (object[i].id == 3) { // MARBLE
+            if (object[i].id == 3) { /* Marble */
                 vec3 hit = cameraPos - sphere.xyz + dir * bounds.x * sphere.w;
                 vec3 normal = normalize(hit);
                 vec3 viewDir = -dir;
 
                 vec4 col = raymarchVolumeMarble(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
                 col.xyz = clamp(vec3(0.0, 0.0, 0.03) + col.xyz, 0.0, 1.0);
-                vec3 light = computeDirectionalLight(0, hit, normal, viewDir, col.xyz, false, false);
-                // fresnel specular reflection
+                vec3 light = computeDirectionalLight(i, hit + sphere.xyz, normal, viewDir, col.xyz, true, false);
+                /* fresnel specular reflection */
                 if (bounds.x > 0.0) {
                     vec3 spec = pow(texture(skybox, reflect(dir, hit)).rgb, vec3(2.2));
                     float f = 1.0 - pow(1.0 - clamp(-dot(hit, dir), 0.0, 1.0), 4.0 / sphere.w);
@@ -324,7 +328,7 @@ void    main() {
                 color += vec4(light, col.w + 0.8);
                 depth = distance(cameraPos, sphere.xyz);
             }
-            else if (object[i].id == 4) { // CLOUD
+            else if (object[i].id == 4) { /* Cloud */
                 vec4 col = raymarchVolume(cameraPos - sphere.xyz, dir, bounds, sphere.w, depth);
                 if (col.w > 0.0)
                     color.rgb *= 1.0 - min(col.w, 1.0);
@@ -433,6 +437,36 @@ vec3    getNormalObj( in vec3 p, int i ) {
                           mapObj(p + eps.yyx, i).x - mapObj(p - eps.yyx, i).x));
 }
 
+float computeMeshesShadows( vec3 hit, vec3 normal, sDirectionalLight light ) {
+    vec4 posLightSpace = lightSpaceMat * vec4(hit, 1.0);
+    /* perform perspective divide and put in interval [0,1] */
+    vec3 projCoords = (posLightSpace.xyz / posLightSpace.w) * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // calculate bias (based on depth map resolution and slope)
+    vec3 lightDir = normalize(light.position - hit);
+    float bias = 0.0025;
+    /* Default */
+    // float shadow = (currentDepth - bias > closestDepth ? 1.0 : 0.0);
+    /* PCF */
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += (currentDepth - bias > pcfDepth ? 1.0 : 0.0);
+        }
+    }
+    shadow /= 9.0;
+    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+    if (projCoords.z > 1.0)
+        shadow = 0.0;
+    return (shadow);
+}
+
+
 vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion ) {
     vec3 lightDir = normalize(directionalLight.position);
     /* diffuse */
@@ -447,7 +481,11 @@ vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3
     vec3 ambient  = directionalLight.ambient  * m_diffuse;
     vec3 diffuse  = directionalLight.diffuse  * diff * m_diffuse;
     vec3 specular = directionalLight.specular * spec * object[objId].material.specular;
-    return ambient + (diffuse + specular) * shadow * ao;
+
+    /* NEW - compute meshes shadows */
+    float mShadow = use_m_shadows ? 1.0 - computeMeshesShadows(hit, normal, directionalLight) : 1.0;
+
+    return ambient + (diffuse + specular) * mShadow * shadow * ao;
 }
 
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k ) {

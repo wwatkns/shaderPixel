@@ -86,12 +86,12 @@ void    Raymarched::render( Shader shader ) {
         shader.setMat4UniformValue(name+"invMat", glm::inverse(mat));
     }
     
-    glActiveTexture(GL_TEXTURE1);
-    shader.setIntUniformValue("skybox", 1);
+    glActiveTexture(GL_TEXTURE2);
+    shader.setIntUniformValue("skybox", 2);
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->skyboxId);
 
-    glActiveTexture(GL_TEXTURE2);
-    shader.setIntUniformValue("noiseSampler", 2);
+    glActiveTexture(GL_TEXTURE3);
+    shader.setIntUniformValue("noiseSampler", 3);
     glBindTexture(GL_TEXTURE_2D, this->noiseSamplerId);
 
     /* render */
