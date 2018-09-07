@@ -44,7 +44,8 @@ public:
     void    renderLights( void );
     void    renderMeshes( void );
     void    renderSkybox( void );
-    void    renderShaders( void );
+    void    renderRaymarched( void );
+    void    renderRaymarchedSurfaces( void );
 
 private:
     Env*            env;

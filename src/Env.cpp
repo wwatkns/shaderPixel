@@ -8,8 +8,8 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
-        // this->initGlfwWindow(720, 480); /* 1280x720 */
-        this->initGlfwWindow(960, 540); /* 1920x1080 */
+        this->initGlfwWindow(720, 480); /* 1280x720 */
+        // this->initGlfwWindow(960, 540); /* 1920x1080 */
         // this->initGlfwWindow(1280, 720); /* 2560x1440 */
         // this->initGlfwWindow(1920, 1080); /* 3840x2160 */
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -137,6 +137,16 @@ Env::Env( void ) {
             // }
 
         });
+        this->raymarchedSurfaces.push_back( new RaymarchedSurface(
+            glm::vec3(17.0f, 0.58f, 28.75f),
+            glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
+            glm::vec3(4.3f, 11.5f, 0.0f)
+        ));
+        this->raymarchedSurfaces.push_back( new RaymarchedSurface(
+            glm::vec3(16.8f, 6.f, -18.2f),
+            glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
+            glm::vec3(3.6f, 4.f, 0.0f)
+        ));
         this->lights = {{
             new Light(
                 glm::vec3(30, 30, 18), //glm::vec3(10, 10, 6),
@@ -145,37 +155,57 @@ Env::Env( void ) {
                 glm::vec3(1.0f, 1.0f, 1.0f),
                 eLightType::directional
             ),
-            /* lights from fractals stands */
-            new Light(
-                glm::vec3(10.0f, 1.f, 14.f),
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.937f, 0.474f, 0.212f),
-                glm::vec3(0.937f, 0.474f, 0.212f),
-                1.0f,
-                0.18f,
-                0.064f,
-                eLightType::point
-            ),
-            new Light(
-                glm::vec3(11.3f, 2.9f, -17.65f),
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.937f, 0.474f, 0.212f),
-                glm::vec3(0.937f, 0.474f, 0.212f),
-                1.0f,
-                0.18f,
-                0.064f,
-                eLightType::point
-            ),
-            new Light(
-                glm::vec3(-15.f, 0.4f, 3.1f),
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.937f, 0.474f, 0.212f),
-                glm::vec3(0.937f, 0.474f, 0.212f),
-                1.0f,
-                0.18f,
-                0.064f,
-                eLightType::point
-            )
+            /* lights from fractals stands - it's slow though... */
+            // new Light(
+            //     glm::vec3(10.0f, 1.f, 14.f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     1.0f,
+            //     0.18f,
+            //     0.064f,
+            //     eLightType::point
+            // ),
+            // new Light(
+            //     glm::vec3(11.3f, 2.9f, -17.65f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     1.0f,
+            //     0.18f,
+            //     0.064f,
+            //     eLightType::point
+            // ),
+            // new Light(
+            //     glm::vec3(-15.f, 0.4f, 3.1f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     1.0f,
+            //     0.18f,
+            //     0.064f,
+            //     eLightType::point
+            // ),
+            // new Light(
+            //     glm::vec3(-27.6f, 4.43f, -22.55f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     1.0f,
+            //     0.18f,
+            //     0.064f,
+            //     eLightType::point
+            // ),
+            // new Light(
+            //     glm::vec3(-27.6f, -0.85f, 12.5f),
+            //     glm::vec3(0.0f, 0.0f, 0.0f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     glm::vec3(0.937f, 0.474f, 0.212f),
+            //     1.0f,
+            //     0.18f,
+            //     0.064f,
+            //     eLightType::point
+            // )
         }};
         this->skybox = new Model(std::vector<std::string>{{
             "./resource/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
@@ -215,7 +245,6 @@ void	Env::initGlfwEnvironment( const std::string& glVersion ) {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    // glfwWindowHint(GLFW_SAMPLES, 4);
 }
 
 void	Env::initGlfwWindow( size_t width, size_t height ) {

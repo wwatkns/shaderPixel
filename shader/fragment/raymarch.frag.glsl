@@ -51,7 +51,7 @@ uniform vec3 cameraPos;
 
 const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
 const float maxDist = 50.0;         // the maximum distance the ray can travel in world-space
-const float minDist = 0.001;        // the distance from object threshold at which we consider a hit in raymarching
+const float minDist = 2./1080.;//0.001;        // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
@@ -109,11 +109,6 @@ float noise2d(in vec2 st) {
 
     vec2 u = f * f * (3.0 - 2.0 * f);
     return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-}
-
-float pattern(vec2 st, vec2 v, float t) {
-    vec2 p = floor(st+v);
-    return step(t, random(100.+p*.000001)+random(p.x)*0.5 );
 }
 
 highp float hash( float n ) {
@@ -280,8 +275,8 @@ void    main() {
         }
         else if (object[id].id == 1) { /* mandelbulb */
             res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
-            vec3 tc0 = 0.5 + 0.5 * sin(3.0 + 4.2 * res.y + vec3(0.0, 0.5, 1.0));
-            vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.2 * tc0 * 8.0;
+            vec3 tc0 = 0.5 + 0.5 * sin(2.65 + 4. * res.y + vec3(.7, 1.0, 0.1));
+            vec3 diffuse = vec3(0.9, 0.8, 0.6) * 0.5 * tc0 * 4.0;
             vec3 color = computeDirectionalLight(id, hit, normal, viewDir, diffuse, use_shadows, true);
             FragColor = vec4(color, object[id].material.opacity);
         }
@@ -395,7 +390,7 @@ vec4    raymarch( in vec3 ro, in vec3 rd, float s ) {
 }
 
 vec3    getNormal( in vec3 p ) {
-    const vec2 eps = vec2(minDist, 0.0);
+    const vec2 eps = vec2(minDist * 0.5, 0.0);
     return normalize(vec3(map(p + eps.xyy).x - map(p - eps.xyy).x,
                           map(p + eps.yxy).x - map(p - eps.yxy).x,
                           map(p + eps.yyx).x - map(p - eps.yyx).x));
@@ -424,20 +419,20 @@ vec4    raymarchObj( in vec3 ro, in vec3 rd, float s, int obj ) {
 	for (int i = 0; i < maxRaySteps; i++) {
         vec3 res = mapObj(ro + rd * t, obj);
 		t += res.x;
-        if (t > maxDist || t > s) return vec4(0.0, 0.0, i, 0.0); // optimization and geometry occlusion
+        if (t > maxDist || t > s) return vec4(0.0, 0.0, i, 0.0);
 		if (res.x < minDist) return vec4(t, res.y, i, res.z);
 	}
 	return vec4(0.0, 0.0, maxRaySteps, 0.0);
 }
 
 vec3    getNormalObj( in vec3 p, int i ) {
-    const vec2 eps = vec2(minDist, 0.0);
+    const vec2 eps = vec2(minDist * 0.5, 0.0);
     return normalize(vec3(mapObj(p + eps.xyy, i).x - mapObj(p - eps.xyy, i).x,
                           mapObj(p + eps.yxy, i).x - mapObj(p - eps.yxy, i).x,
                           mapObj(p + eps.yyx, i).x - mapObj(p - eps.yyx, i).x));
 }
 
-float   computeMeshesShadows( vec3 hit, vec3 normal ) {
+float   computeMeshShadows( vec3 hit, vec3 normal ) {
     vec4 posLightSpace = lightSpaceMat * vec4(hit, 1.0);
     vec3 projCoords = (posLightSpace.xyz / posLightSpace.w) * 0.5 + 0.5;
     float bias = 0.0025;
@@ -465,14 +460,12 @@ vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3
     float spec = pow(max(dot(normal, halfwayDir), 0.0), object[objId].material.shininess);
     /* shadow and ambient occlusion */
     float shadow = (use_shadows == true ? softShadow(hit, lightDir, 0.1, 32) : 1.0);
+    float mShadow = (use_shadows ? 1.0 - computeMeshShadows(hit, normal) : 1.0);
     float ao = (use_occlusion == true ? ambientOcclusion(hit, normal) : 1.0);
     /* compute terms */
     vec3 ambient  = directionalLight.ambient  * m_diffuse;
     vec3 diffuse  = directionalLight.diffuse  * diff * m_diffuse;
     vec3 specular = directionalLight.specular * spec * object[objId].material.specular;
-
-    /* NEW - compute meshes shadows */
-    float mShadow = (use_shadows ? 1.0 - computeMeshesShadows(hit, normal) : 1.0);
 
     return ambient + (diffuse + specular) * mShadow * shadow * ao;
 }
@@ -571,19 +564,16 @@ vec2   mandelbulb(vec3 pos) {
 	float dr = 1.0;
 	float r = 0.0;
     float t0 = 1.0;
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; ++i) {
 		r = length(z);
-		if (r > 2.0) break;
-		// convert to polar coordinates
-		float theta = acos(z.z/r) + uTime * 0.1;
-		float phi = atan(z.y,z.x) + uTime * 0.05;
-		dr =  pow(r, 7.0)*8.0*dr + 1.0;
-		// scale and rotate the point
-		float zr = pow(r, 8.0);
-		theta = theta*8.0;
-		phi = phi*8.0;
-		// convert back to cartesian coordinates
-		z = zr*vec3(sin(theta)*cos(phi), sin(phi)*sin(theta), cos(theta)) + pos;
+		if (r > 1.5) break;
+		float theta = acos(z.z/r)*8.0 + uTime * 0.1;
+		float phi = atan(z.y,z.x)*8.0 + uTime * 0.05;
+        float rp = pow(r, 7.0);
+		dr =  rp*8.0*dr + 1.0;
+		float zr = rp * r;
+        float sinTheta = sin(theta);
+		z = zr*vec3(sinTheta*cos(phi), sin(phi)*sinTheta, cos(theta)) + pos;
         t0 = min(t0, zr);
 	}
 	return vec2(0.25*log(r)*r/dr, t0);
@@ -620,13 +610,12 @@ float   ifs( vec3 p ) {
     mat2 nn = mat2(sin(y), cos(y), -cos(y), sin(y));
 
     float t = 1.0;
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 10; i++) {
         t = t * 0.66;
         p.xy =  m * p.xy;
         p.yz =  n * p.yz;
         p.zx = nn * p.zx;
         p.xz = abs(p.xz) - t;
     }
-    // return sphere(p, 2.0 * t);
     return smoothBox(p, vec3(0.975 * t), 0.1 * t);
 }

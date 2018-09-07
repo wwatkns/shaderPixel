@@ -6,8 +6,9 @@ env(env),
 camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["default"] = new Shader("./shader/vertex/default.vert.glsl", "./shader/fragment/default.frag.glsl");
     this->shader["skybox"]  = new Shader("./shader/vertex/skybox.vert.glsl", "./shader/fragment/skybox.frag.glsl");
-    this->shader["shadowMap"] = new Shader("./shader/vertex/shadow_mapping.vert.glsl", "./shader/fragment/shadow_mapping.frag.glsl");
+    this->shader["shadowMap"] = new Shader("./shader/vertex/shadowMap.vert.glsl", "./shader/fragment/shadowMap.frag.glsl");
     this->shader["raymarch"] = new Shader("./shader/vertex/raymarch.vert.glsl", "./shader/fragment/raymarch.frag.glsl");
+    this->shader["raymarchOnSurface"] = new Shader("./shader/vertex/raymarchSurface.vert.glsl", "./shader/fragment/raymarchSurface.frag.glsl");
     this->lastTime = std::chrono::steady_clock::now();
     this->framerate = 60.0;
 
@@ -39,7 +40,6 @@ void	Renderer::loop( void ) {
     static double last = 0.0;
     glEnable(GL_DEPTH_TEST); /* z-buffering */
     glEnable(GL_FRAMEBUFFER_SRGB); /* gamma correction */
-    // glEnable(GL_MULTISAMPLE); /* multisampling MSAA */
     glEnable(GL_BLEND); /* transparency */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // glEnable(GL_CULL_FACE); /* enable face-culling (back faces of triangles are not rendered) */
@@ -49,27 +49,24 @@ void	Renderer::loop( void ) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         this->env->getController()->update();
-
-        this->camera.speedmod = this->env->getRaymarched()->computeSpeedModifier(this->camera.getPosition()); // NEW
+        this->camera.speedmod = this->env->getRaymarched()->computeSpeedModifier(this->camera.getPosition());
         this->camera.handleInputs(this->env->getController()->getKeys(), this->env->getController()->getMouse());
-
         this->useShadows = this->env->getController()->getKeyValue(GLFW_KEY_P);
 
-        this->env->getLights()[0]->setPosition(
-            glm::vec3(glm::sin(glfwGetTime() * 0.125 + 2.) * 50., 15., glm::cos(glfwGetTime()*0.125 + 2.) * 28.)
+        this->env->getDirectionalLight()->setPosition(
+            glm::vec3(glm::sin(glfwGetTime() * 0.125 + 2.) * 50., 20., glm::cos(glfwGetTime()*0.125 + 2.) * 50.)
         );
-
+        /* rendering passes */
         this->updateShadowDepthMap();
         this->renderLights();
         this->renderMeshes();
         this->renderSkybox();
-        this->renderShaders();
+        this->renderRaymarchedSurfaces();
+        this->renderRaymarched();
         glfwSwapBuffers(this->env->getWindow().ptr);
-
         /* capture video frames */
         if (this->videoCapture)
             this->videoCapture->write();
-
         /* display framerate */
         tTimePoint current = std::chrono::steady_clock::now();
         frames++;
@@ -90,7 +87,7 @@ void    Renderer::updateShadowDepthMap( void ) {
     Light*  directionalLight = this->env->getDirectionalLight();
     if (this->useShadows && directionalLight) {
         glm::mat4 lightProjection, lightView;
-        lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, this->camera.getNear(), this->camera.getFar());
+        lightProjection = glm::ortho(-40.0f, 40.0f, -40.0f, 40.0f, this->camera.getNear(), this->camera.getFar());
         lightView = glm::lookAt(directionalLight->getPosition(), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         this->lightSpaceMat = lightProjection * lightView;
         /* render scene from light's point of view */
@@ -122,10 +119,15 @@ void    Renderer::renderLights( void ) {
     for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
         (*it)->render(*this->shader["default"]);
 
-    /* render lights for fractals */
+    /* render lights for raymarched objects */
     this->shader["raymarch"]->use();
     for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
         (*it)->render(*this->shader["raymarch"]);
+    
+    /* render lights for raymarched object on surfaces */
+    this->shader["raymarchOnSurface"]->use();
+    for (auto it = this->env->getLights().begin(); it != this->env->getLights().end(); it++)
+        (*it)->render(*this->shader["raymarchOnSurface"]);
 }
 
 void    Renderer::renderMeshes( void ) {
@@ -163,12 +165,12 @@ void    Renderer::renderSkybox( void ) {
     // glEnable(GL_CULL_FACE);
 }
 
-void    Renderer::renderShaders( void ) {
+void    Renderer::renderRaymarched( void ) {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
     this->shader["raymarch"]->use();
-    this->shader["raymarch"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat); // NEW
+    this->shader["raymarch"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
     this->shader["raymarch"]->setIntUniformValue("use_shadows", this->useShadows);
     this->shader["raymarch"]->setMat4UniformValue("invProjection", this->camera.getInvProjectionMatrix());
     this->shader["raymarch"]->setMat4UniformValue("invView", this->camera.getInvViewMatrix());
@@ -195,6 +197,30 @@ void    Renderer::renderShaders( void ) {
     // glEnable(GL_CULL_FACE);
 }
 
+void    Renderer::renderRaymarchedSurfaces( void ) {
+    glDisable(GL_CULL_FACE);
+
+    this->shader["raymarchOnSurface"]->use();
+    this->shader["raymarchOnSurface"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
+    this->shader["raymarchOnSurface"]->setMat4UniformValue("view", this->camera.getViewMatrix());
+    this->shader["raymarchOnSurface"]->setVec3UniformValue("cameraPos", this->camera.getPosition());
+    this->shader["raymarchOnSurface"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
+
+    this->shader["raymarchOnSurface"]->setIntUniformValue("use_shadows", this->useShadows);
+    this->shader["raymarchOnSurface"]->setMat4UniformValue("invProjection", this->camera.getInvProjectionMatrix());
+    this->shader["raymarchOnSurface"]->setMat4UniformValue("invView", this->camera.getInvViewMatrix());
+    this->shader["raymarchOnSurface"]->setFloatUniformValue("near", this->camera.getNear());
+    this->shader["raymarchOnSurface"]->setFloatUniformValue("far", this->camera.getFar());
+    this->shader["raymarchOnSurface"]->setFloatUniformValue("uTime", glfwGetTime());
+
+    if (this->env->getRaymarchedSurfaces().size() != 0)
+        /* render models */
+        for (auto it = this->env->getRaymarchedSurfaces().begin(); it != this->env->getRaymarchedSurfaces().end(); it++)
+            (*it)->render(*this->shader["raymarchOnSurface"]);
+
+    // glEnable(GL_CULL_FACE);
+}
+
 void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) {
     glEnable(GL_DEPTH_TEST);
 
@@ -206,8 +232,8 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     glGenTextures(1, &this->shadowDepthMap.id);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // GL_NEAREST
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
