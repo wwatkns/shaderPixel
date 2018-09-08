@@ -30,6 +30,7 @@ public:
     void                        update( void );
     void                        render( Shader shader );
     unsigned int                noiseSamplerId;
+    unsigned int                skyboxId;
     glm::mat4&                  getTransform( void ) { return transform; };
 
 private:

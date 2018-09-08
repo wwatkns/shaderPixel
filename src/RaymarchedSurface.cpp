@@ -6,6 +6,14 @@ RaymarchedSurface::RaymarchedSurface( const glm::vec3& position, const glm::vec3
     this->createRenderQuad();
     this->setup(GL_STATIC_DRAW);
     this->update();
+    this->skyboxId = loadCubemap(std::vector<std::string>{{
+        "./resource/CloudyLightRays/CloudyLightRaysLeft2048.png",
+        "./resource/CloudyLightRays/CloudyLightRaysRight2048.png",
+        "./resource/CloudyLightRays/CloudyLightRaysUp2048.png",
+        "./resource/CloudyLightRays/CloudyLightRaysDown2048.png",
+        "./resource/CloudyLightRays/CloudyLightRaysFront2048.png",
+        "./resource/CloudyLightRays/CloudyLightRaysBack2048.png",
+    }});
     this->noiseSamplerId = loadTexture("./resource/RGBAnoiseMedium.png");
 }
 
@@ -46,7 +54,11 @@ void    RaymarchedSurface::render( Shader shader ) {
     shader.setMat4UniformValue("model", this->transform);
 
     glActiveTexture(GL_TEXTURE0);
-    shader.setIntUniformValue("noiseSampler", 0);
+    shader.setIntUniformValue("skybox", 0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->skyboxId);
+
+    glActiveTexture(GL_TEXTURE1);
+    shader.setIntUniformValue("noiseSampler", 1);
     glBindTexture(GL_TEXTURE_2D, this->noiseSamplerId);
     /* render */
     glBindVertexArray(this->vao);

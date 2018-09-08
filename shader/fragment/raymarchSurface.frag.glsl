@@ -15,6 +15,7 @@ in float Near;
 in float Far;
 
 uniform bool use_shadows;
+uniform samplerCube skybox;
 uniform sampler2D noiseSampler;
 
 uniform sDirectionalLight directionalLight;
@@ -25,8 +26,8 @@ uniform mat4 lightSpaceMat;
 uniform float uTime;
 uniform vec3 cameraPos;
 
-const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
-const float maxDist = 50.0;         // the maximum distance the ray can travel in world-space
+const int 	maxRaySteps = 196;      // the maximum number of steps the raymarching algorithm is allowed to perform
+const float maxDist = 42.0;         // the maximum distance the ray can travel in world-space
 const float minDist = 2./1080.;     // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
@@ -101,12 +102,6 @@ float   voronoi2d(vec2 uv, float scale) {
     return m_dist;
 }
 
-float   sphereRadius(float t) {
-	t = abs(t-250.0);
-	t *= 0.01;
-	return clamp(t*t, 50.0/720., 80.0); // uResolution.y
-}
-
 float   map2(vec2 p) {
     return fbm2d(p + (0.8-fbm2d(p + uTime * 0.025, 1.0, 1.0, 6, 2.2, 0.5)*1.3), 0.3, 1.0, 5, 1., 0.5);
 }
@@ -133,31 +128,26 @@ vec3    getPixel(vec2 uv) {
 
 	float t = minDist * random(gl_FragCoord.xy/256.);
 	vec3 p = vec3(0.0);
-	for (int i = 0; i < 80; ++i) {
-		if (t > 22.0) break;
+    int i;
+	for (i = 0; i < maxRaySteps; ++i) {
+		if (t > maxDist) break;
 		p = pos + dir * t;
-		float sphereR = sphereRadius(t);
 		float h = map(p);
-		t += h * .5 + t * .003;
+        h = h * 0.5 + t * .006;
+        if (h < minDist)
+            break;
+		t += h;
 	}
+    vec3 sky = texture(skybox, dir).rgb + (i / float(maxRaySteps)) * vec3(1.0, 0.4815, 0.078) * 1.5;
 
-    if (t > 22.0) {
-        vec3 color = vec3(0.8, 0.95, 1.0);
-        color -= 0.5-pow(p.y + 1.0, 2.0) * 0.1;
-        return color;
-    }
-
-    p = pos + dir * t;
     vec3 normal = getNormal(p, 0.025);
-    vec3 viewDir = -dir;
-    
-    vec3 light = computeDirectionalLight(p, normal, viewDir, vec3(1.0), use_shadows);
+    vec3 light = computeDirectionalLight(p, normal, -dir, vec3(1.0), use_shadows);
 
     vec3 color = vec3(0.48, 0.27, 0.12) * clamp(p.y + 0.3, 0.0, 1.0) + // dirt
-                 vec3( 0.0,  1.0,  1.0) * clamp(p.y - 0.3, 0.0, 1.0) - // snow
-                 vec3( 0.3,  1.5,  1.0) * clamp(p.y - 0.1, 0.0, 0.2) * 0.3;
+                 vec3( 1.0,  1.0,  1.0) * clamp(p.y - 0.3, 0.0, 1.0); // snow
 
-    return light * color * 2.0 * vec3(0.9, 0.95, 1.0);
+    vec3 fog = (light*0.75+0.25) * (i / float(maxRaySteps)) * vec3(1.0, 0.2815, 0.078) * 0.95;
+    return mix(light * color + fog, sky, clamp(t / maxDist, 0.0, 1.0) );
 }
 
 void    main() {
