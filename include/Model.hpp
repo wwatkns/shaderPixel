@@ -26,7 +26,7 @@ public:
     Model( const std::string& path, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ); // constructor from existing meshes
     Model( const std::vector<Mesh*> meshes, const std::vector<tTexture> textures, const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
     Model( const std::vector<std::string>& paths );  // cubemap constructor
-    Model( const glm::vec3& position, const glm::vec3& scale ); // billboard constructor
+    Model( const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ); // billboard constructor
     ~Model( void );
 
     void            update( void );

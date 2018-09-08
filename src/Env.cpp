@@ -56,6 +56,11 @@ Env::Env( void ) {
             glm::vec3(0.0f, 2.0f, 0.0f),
             glm::vec3(2.5f, 2.0f, 2.5f)
         ));
+        this->models.push_back( new Model( /* quad for raymarched surface (to compute shadowMap correclty) */
+            glm::vec3(17.01f, 0.58f, 28.75f),
+            glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
+            glm::vec3(4.3f, 11.5f, 0.0f)
+        ));
 
         this->raymarched = new Raymarched({
             (tObject){
@@ -143,9 +148,9 @@ Env::Env( void ) {
             glm::vec3(4.3f, 11.5f, 0.0f)
         ));
         this->raymarchedSurfaces.push_back( new RaymarchedSurface(
-            glm::vec3(16.8f, 6.f, -18.2f),
+            glm::vec3(16.8f, 5.85f, -18.215f),
             glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
-            glm::vec3(3.6f, 4.f, 0.0f)
+            glm::vec3(2.825f, 3.45f, 0.0f)
         ));
         this->lights = {{
             new Light(

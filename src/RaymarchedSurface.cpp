@@ -53,12 +53,12 @@ void    RaymarchedSurface::render( Shader shader ) {
     this->update();
     shader.setMat4UniformValue("model", this->transform);
 
-    glActiveTexture(GL_TEXTURE0);
-    shader.setIntUniformValue("skybox", 0);
+    glActiveTexture(GL_TEXTURE1);
+    shader.setIntUniformValue("skybox", 1);
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->skyboxId);
 
-    glActiveTexture(GL_TEXTURE1);
-    shader.setIntUniformValue("noiseSampler", 1);
+    glActiveTexture(GL_TEXTURE2);
+    shader.setIntUniformValue("noiseSampler", 2);
     glBindTexture(GL_TEXTURE_2D, this->noiseSamplerId);
     /* render */
     glBindVertexArray(this->vao);

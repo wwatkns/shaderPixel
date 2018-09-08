@@ -213,6 +213,10 @@ void    Renderer::renderRaymarchedSurfaces( void ) {
     this->shader["raymarchOnSurface"]->setFloatUniformValue("far", this->camera.getFar());
     this->shader["raymarchOnSurface"]->setFloatUniformValue("uTime", glfwGetTime());
 
+    glActiveTexture(GL_TEXTURE0);
+    this->shader["raymarchOnSurface"]->setIntUniformValue("shadowMap", 0);
+    glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
+
     if (this->env->getRaymarchedSurfaces().size() != 0)
         /* render models */
         for (auto it = this->env->getRaymarchedSurfaces().begin(); it != this->env->getRaymarchedSurfaces().end(); it++)

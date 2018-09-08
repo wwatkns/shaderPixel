@@ -14,6 +14,7 @@ in vec2 TexCoords;
 in float Near;
 in float Far;
 
+uniform sampler2D shadowMap; // NEW
 uniform bool use_shadows;
 uniform samplerCube skybox;
 uniform sampler2D noiseSampler;
@@ -102,6 +103,25 @@ float   voronoi2d(vec2 uv, float scale) {
     return m_dist;
 }
 
+float   computeMeshShadows( vec3 hit, vec3 normal ) {
+    vec4 posLightSpace = lightSpaceMat * vec4(hit, 1.0);
+    vec3 projCoords = (posLightSpace.xyz / posLightSpace.w) * 0.5 + 0.5;
+    float bias = 0.0025;
+    /* Default */
+    // float closestDepth = texture(shadowMap, projCoords.xy).r;
+    // float shadow = (projCoords.z - bias > closestDepth ? 1.0 : 0.0);
+    /* PCF */
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += (projCoords.z - bias > pcfDepth ? 1.0 : 0.0);
+        }
+    }
+    return (projCoords.z > 1.0 ? 0.0 : shadow / 9.0);
+}
+
 float   map2(vec2 p) {
     return fbm2d(p + (0.8-fbm2d(p + uTime * 0.025, 1.0, 1.0, 6, 2.2, 0.5)*1.3), 0.3, 1.0, 5, 1., 0.5);
 }
@@ -123,9 +143,8 @@ vec3    getNormal(vec3 p, float sphereR) {
 vec3    getPixel(vec2 uv) {
     vec3 ndc = vec3(uv * 2.0 - 1.0, -1.0);
     vec3 dir = normalize(FragPos - cameraPos);
-    /* relief */
     vec3 pos = (vec3(FragPos.x - uTime * 0.7, FragPos.yz) + 7.0)* .125;
-
+    /* raymarch terrain */
 	float t = minDist * random(gl_FragCoord.xy/256.);
 	vec3 p = vec3(0.0);
     int i;
@@ -138,16 +157,20 @@ vec3    getPixel(vec2 uv) {
             break;
 		t += h;
 	}
-    vec3 sky = texture(skybox, dir).rgb + (i / float(maxRaySteps)) * vec3(1.0, 0.4815, 0.078) * 1.5;
+    /* colorize */
+    vec3 sky = texture(skybox, dir).rgb * 1.15 + (i / float(maxRaySteps)) * vec3(1.0, 0.3815, 0.078) * 1.5;
 
     vec3 normal = getNormal(p, 0.025);
     vec3 light = computeDirectionalLight(p, normal, -dir, vec3(1.0), use_shadows);
 
-    vec3 color = vec3(0.48, 0.27, 0.12) * clamp(p.y + 0.3, 0.0, 1.0) + // dirt
-                 vec3( 1.0,  1.0,  1.0) * clamp(p.y - 0.3, 0.0, 1.0); // snow
-
+    vec3 color = vec3(0.48, 0.27, 0.12) * clamp(p.y + 0.3, 0.0, 1.0) * 0.33; // mid
+    color += vec3(1.0, 1.0, 0.8) * clamp(p.y - 0.3, 0.0, 0.3) * 1.0; // top
+    color += vec3(0.0, 0.2, 1.0) * (1.0-clamp(p.y+0.8, 0.0, 1.0)) * 0.5; // ground
+    color *= 2.0;
     vec3 fog = (light*0.75+0.25) * (i / float(maxRaySteps)) * vec3(1.0, 0.2815, 0.078) * 0.95;
-    return mix(light * color + fog, sky, clamp(t / maxDist, 0.0, 1.0) );
+    vec3 shadow = vec3(1.0 - computeMeshShadows(FragPos, vec3(-1., 0., 0.)))*0.5+0.5; // hard-coded normal is not good
+    float vignette = (1.0-pow(TexCoords.x*2.-1., 10.)) * (1.0-pow(TexCoords.y*2.-1., 10.));
+    return mix(light * color + fog, sky, clamp(t / maxDist, 0.0, 1.0) ) * shadow * vignette;
 }
 
 void    main() {

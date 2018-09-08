@@ -57,7 +57,7 @@ Model::Model( const std::vector<std::string>& paths ) : position(glm::vec3(0, 0,
 }
 
 /* this constructor will create a quad (used to render fractals shaders, ...) */
-Model::Model( const glm::vec3& position, const glm::vec3& scale ) : position(position), orientation(glm::vec3(0)), scale(scale){
+Model::Model( const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ) : position(position), orientation(orientation), scale(scale){
     std::vector<float>          v;
     std::vector<tVertex>        vertices;
     std::vector<unsigned int>   indices;
@@ -80,7 +80,7 @@ Model::Model( const glm::vec3& position, const glm::vec3& scale ) : position(pos
         vertex.Bitangent = glm::vec3(0, 0, 0);
         vertices.push_back(vertex);
     }
-    tMaterial material = (tMaterial){ glm::vec3(0,0,0), glm::vec3(1,1,1), glm::vec3(0,0,0), 0.0f };
+    tMaterial material = (tMaterial){ glm::vec3(0.), glm::vec3(1.), glm::vec3(0.33), 0.0f };
     this->meshes.push_back(new Mesh(vertices, indices, textures, material));
     this->update();
     this->meshClone = false;
