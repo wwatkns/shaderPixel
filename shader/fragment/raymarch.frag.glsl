@@ -33,7 +33,7 @@ in float Far;
 #define MAX_OBJECTS 8
 
 uniform sampler2D depthBuffer;
-uniform sampler2D shadowMap; // NEW
+uniform sampler2D shadowMap;
 uniform bool use_shadows;
 uniform samplerCube skybox;
 uniform sampler2D noiseSampler;
@@ -43,7 +43,7 @@ uniform int nObjects;
 uniform sDirectionalLight directionalLight;
 uniform mat4 invProjection;
 uniform mat4 invView;
-uniform mat4 lightSpaceMat; // NEW
+uniform mat4 lightSpaceMat;
 
 uniform vec2 uMouse;
 uniform float uTime;
@@ -140,20 +140,20 @@ float noise( vec3 x ) {
 
 vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s) { // same as raymarch, but we accumulate value when inside and sample the occlusion
     bounds *= radius;
-    const int maxVolumeSamples = 40; // max steps for density sampling
+    const int maxVolumeSamples = 35; // max steps for density sampling
     const int maxShadowSamples = 20; // max steps for shadow sampling
     const float r = 6.0;
     float shadowStepSize = (2.0 * radius) / float(maxShadowSamples);
     vec3 lightVector = normalize(directionalLight.position) * shadowStepSize;
     float absorption = 50.0 / float(maxShadowSamples);
     float stepSize = (2.0 * radius) / float(maxVolumeSamples); // granularity
-    float t = bounds.x + stepSize * random(TexCoords.xy); // random dithering
+    float t = bounds.x + stepSize * random(gl_FragCoord.xy); // random dithering
     vec4 sum = vec4(0.0);
 
     for (int i = 0; i < maxVolumeSamples; i++) {
         if (sum.a > 0.99 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
         vec3 pos = ro + rd * t;
-        float se = fbm3d(pos + uTime*0.1, 0.7, 2.0, 4, 2.7, 0.348);
+        float se = fbm3d(pos + uTime*0.1, 0.8, 2.0, 4, 2.7, 0.248);
         se = 1.0/exp(se * r);
         se *= 1.0 - smoothstep(0.75 * radius, radius, length(pos)); // edge so that we have no interaction with sphere bounds
         // Compute shadow from directional light source
@@ -162,16 +162,15 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
             vec3 lpos = pos + lightVector * float(s);
             if (lpos.x < -radius || lpos.x > radius || lpos.y < -radius || lpos.y > radius || lpos.z < -radius || lpos.z > radius) // optimization
                 break;
-            float ldensity = fbm3d(lpos + uTime*0.1, 0.7, 2.0, 4, 2.7, 0.348);
+            float ldensity = fbm3d(lpos + uTime*0.1, 0.8, 2.0, 4, 2.7, 0.248);
             ldensity = 1.0/exp(ldensity * r);
             ldensity *= 1.0 - smoothstep(0.75 * radius, radius, length(lpos));
             if (ldensity > 0.0)
                 T1 *= clamp(1.0 - ldensity * absorption, 0.0, 1.0);
             if (T1 <= 0.01) break;
         }
-        vec4 col = vec4(vec3(1.0), se);// = vec4(mix(vec3(1.0), vec3(directionalLight.ambient), min(se * 2.5, 1.0)), se);
-        col.rgb *= mix(vec3(0.145, 0.431, 1.0)*0.5, vec3(1.0), max(T1, 0.1));
-		col.a *= 0.5;
+        vec4 col = vec4(vec3(1.0) * max(T1, 0.15), se);
+		col.a *= 0.4;
 		col.rgb *= col.a;
         sum += col * (1.0 - sum.a) * (stepSize * 100.0);
 		t += stepSize;

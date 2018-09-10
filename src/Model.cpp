@@ -110,7 +110,7 @@ void    Model::update( void ) {
 }
 
 void    Model::loadModel( const std::string& path ) {
-    std::cout << "Loading: " << path << std::endl;
+    std::cout << "> Loading: " << path << std::endl;
     Assimp::Importer import;
     const aiScene*  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
 
@@ -208,7 +208,6 @@ std::vector<tTexture>   Model::loadMaterialTextures( aiMaterial* mat, aiTextureT
     for (unsigned int i = 0; i < mat->GetTextureCount(type); ++i) {
         aiString str;
         mat->GetTexture(type, i, &str);
-        std::cout << str.C_Str() << std::endl;
         bool skip = false;
         for (unsigned int j = 0; j < this->textures_loaded.size(); ++j) {
             if (std::strcmp(this->textures_loaded[j].path.data(), str.C_Str()) == 0) {
@@ -274,6 +273,7 @@ unsigned int    loadCubemap( const std::vector<std::string>& paths ) {
 
     int width, height, channels;
     for (size_t i = 0; i < paths.size(); ++i) {
+        std::cout << "> texture: " << paths[i].c_str() << std::endl;
         unsigned char *data = stbi_load(paths[i].c_str(), &width, &height, &channels, 0);
         if (data) {
             GLenum format;

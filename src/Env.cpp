@@ -8,8 +8,8 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
-        this->initGlfwWindow(720, 480); /* 1280x720 */
-        // this->initGlfwWindow(960, 540); /* 1920x1080 */
+        // this->initGlfwWindow(720, 480); /* 1280x720 */
+        this->initGlfwWindow(960, 540); /* 1920x1080 */
         // this->initGlfwWindow(1280, 720); /* 2560x1440 */
         // this->initGlfwWindow(1920, 1080); /* 3840x2160 */
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -152,6 +152,11 @@ Env::Env( void ) {
             glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
             glm::vec3(2.825f, 3.45f, 0.0f)
         ));
+        this->texturedSurfaces.push_back( new RaymarchedSurface(
+            glm::vec3(16.88f, 4.8f, -6.015f),
+            glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
+            glm::vec3(10.f, 13.f, 0.0f)
+        ));
         this->lights = {{
             new Light(
                 glm::vec3(30, 30, 18), //glm::vec3(10, 10, 6),
@@ -201,16 +206,16 @@ Env::Env( void ) {
             //     0.064f,
             //     eLightType::point
             // ),
-            // new Light(
-            //     glm::vec3(-27.6f, -0.85f, 12.5f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     1.0f,
-            //     0.18f,
-            //     0.064f,
-            //     eLightType::point
-            // )
+            // // new Light(
+            // //     glm::vec3(-27.6f, -0.85f, 12.5f),
+            // //     glm::vec3(0.0f, 0.0f, 0.0f),
+            // //     glm::vec3(0.937f, 0.474f, 0.212f),
+            // //     glm::vec3(0.937f, 0.474f, 0.212f),
+            // //     1.0f,
+            // //     0.18f,
+            // //     0.064f,
+            // //     eLightType::point
+            // // )
         }};
         this->skybox = new Model(std::vector<std::string>{{
             "./resource/ThickCloudsWater/ThickCloudsWaterLeft2048.png",

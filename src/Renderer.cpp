@@ -9,21 +9,25 @@ camera(75, (float)env->getWindow().width / (float)env->getWindow().height) {
     this->shader["shadowMap"] = new Shader("./shader/vertex/shadowMap.vert.glsl", "./shader/fragment/shadowMap.frag.glsl");
     this->shader["raymarch"] = new Shader("./shader/vertex/raymarch.vert.glsl", "./shader/fragment/raymarch.frag.glsl");
     this->shader["raymarchOnSurface"] = new Shader("./shader/vertex/raymarchSurface.vert.glsl", "./shader/fragment/raymarchSurface.frag.glsl");
+    this->shader["2Dtexture"] = new Shader("./shader/vertex/raymarchSurface.vert.glsl", "./shader/fragment/2Dtexture.frag.glsl");
+    this->shader["blendTexture"] = new Shader("./shader/vertex/raymarch.vert.glsl", "./shader/fragment/blendTexture.frag.glsl");
     this->lastTime = std::chrono::steady_clock::now();
     this->framerate = 60.0;
 
     this->initDepthMap();
     this->initShadowDepthMap(4096, 4096);
+    this->initRenderbuffer();
+    this->initIntermediateTexture();
     
     this->videoCapture = NULL;
     #if 0
     this->videoCapture = new VideoCapture(
-        "./test.mov",
+        "./test.mp4", // .mov
         this->env->getWindow().width,
         this->env->getWindow().height,
         this->framerate,
         eCodec::avc1,
-        8.0
+        16.0
     );
     #endif
 
@@ -42,10 +46,9 @@ void	Renderer::loop( void ) {
     glEnable(GL_FRAMEBUFFER_SRGB); /* gamma correction */
     glEnable(GL_BLEND); /* transparency */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // glEnable(GL_CULL_FACE); /* enable face-culling (back faces of triangles are not rendered) */
     while (!glfwWindowShouldClose(this->env->getWindow().ptr)) {
         glfwPollEvents();
-        glClearColor(0.09f, 0.08f, 0.15f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         this->env->getController()->update();
@@ -61,8 +64,19 @@ void	Renderer::loop( void ) {
         this->renderLights();
         this->renderMeshes();
         this->renderSkybox();
+        /* dumb renderbuffer pass... */
+        glBindFramebuffer(GL_FRAMEBUFFER, this->renderbuffer.fbo);
+        glClear(GL_COLOR_BUFFER_BIT);
+        this->render2Dtexture();
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, this->renderbuffer.fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->intermediateTexture.fbo);
+        glBlitFramebuffer(0, 0, this->renderbuffer.width, this->renderbuffer.height, 0, 0, this->renderbuffer.width, this->renderbuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        this->renderBlendTexture();
+        /* order has importance for occlusion */
         this->renderRaymarchedSurfaces();
         this->renderRaymarched();
+
         glfwSwapBuffers(this->env->getWindow().ptr);
         /* capture video frames */
         if (this->videoCapture)
@@ -154,7 +168,6 @@ void    Renderer::renderMeshes( void ) {
 }
 
 void    Renderer::renderSkybox( void ) {
-    glDisable(GL_CULL_FACE); /* disable face-culling as the skybox shows back-faces */
     glDepthFunc(GL_LEQUAL);
     this->shader["skybox"]->use();
     this->shader["skybox"]->setMat4UniformValue("view", glm::mat4(glm::mat3(this->camera.getViewMatrix())));
@@ -162,11 +175,9 @@ void    Renderer::renderSkybox( void ) {
     /* render skybox */
     this->env->getSkybox()->render(*this->shader["skybox"]);
     glDepthFunc(GL_LESS);
-    // glEnable(GL_CULL_FACE);
 }
 
 void    Renderer::renderRaymarched( void ) {
-    glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
     this->shader["raymarch"]->use();
@@ -194,12 +205,9 @@ void    Renderer::renderRaymarched( void ) {
         this->env->getRaymarched()->render(*this->shader["raymarch"]);
 
     glEnable(GL_DEPTH_TEST);
-    // glEnable(GL_CULL_FACE);
 }
 
 void    Renderer::renderRaymarchedSurfaces( void ) {
-    glDisable(GL_CULL_FACE);
-
     this->shader["raymarchOnSurface"]->use();
     this->shader["raymarchOnSurface"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
     this->shader["raymarchOnSurface"]->setMat4UniformValue("view", this->camera.getViewMatrix());
@@ -221,17 +229,49 @@ void    Renderer::renderRaymarchedSurfaces( void ) {
         /* render models */
         for (auto it = this->env->getRaymarchedSurfaces().begin(); it != this->env->getRaymarchedSurfaces().end(); it++)
             (*it)->render(*this->shader["raymarchOnSurface"]);
+}
 
-    // glEnable(GL_CULL_FACE);
+void    Renderer::render2Dtexture( void ) {
+    this->shader["2Dtexture"]->use();
+    this->shader["2Dtexture"]->setMat4UniformValue("lightSpaceMat", this->lightSpaceMat);
+    this->shader["2Dtexture"]->setMat4UniformValue("projection", this->camera.getProjectionMatrix());
+    this->shader["2Dtexture"]->setMat4UniformValue("view", this->camera.getViewMatrix());
+    this->shader["2Dtexture"]->setFloatUniformValue("near", this->camera.getNear());
+    this->shader["2Dtexture"]->setFloatUniformValue("far", this->camera.getFar());
+    this->shader["2Dtexture"]->setFloatUniformValue("uTime", glfwGetTime());
+
+    glActiveTexture(GL_TEXTURE0);
+    this->shader["2Dtexture"]->setIntUniformValue("shadowMap", 0);
+    glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
+
+    if (this->env->getTexturedSurfaces().size() != 0)
+        for (auto it = this->env->getTexturedSurfaces().begin(); it != this->env->getTexturedSurfaces().end(); it++)
+            (*it)->render(*this->shader["2Dtexture"]);
+}
+
+void    Renderer::renderBlendTexture( void ) {
+    // glDisable(GL_DEPTH_TEST);
+
+    this->shader["blendTexture"]->use();
+    this->shader["blendTexture"]->setFloatUniformValue("near", this->camera.getNear());
+    this->shader["blendTexture"]->setFloatUniformValue("far", this->camera.getFar());
+
+    glActiveTexture(GL_TEXTURE0);
+    this->shader["blendTexture"]->setIntUniformValue("tex", 0);
+    glBindTexture(GL_TEXTURE_2D, this->intermediateTexture.id);
+
+    if (this->env->getRaymarched())
+        this->env->getRaymarched()->render(*this->shader["blendTexture"]);
+
+    // glEnable(GL_DEPTH_TEST);
 }
 
 void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) {
-    glEnable(GL_DEPTH_TEST);
-
     this->shadowDepthMap.width = width;
     this->shadowDepthMap.height = height;
 
     glGenFramebuffers(1, &this->shadowDepthMap.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, this->shadowDepthMap.fbo);
     /* create depth texture */
     glGenTextures(1, &this->shadowDepthMap.id);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
@@ -243,7 +283,6 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, this->shadowDepthMap.fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->shadowDepthMap.id, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
@@ -258,12 +297,11 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
 }
 
 void    Renderer::initDepthMap( void ) {
-    glEnable(GL_DEPTH_TEST);
-
     this->depthMap.width = this->env->getWindow().width;
     this->depthMap.height = this->env->getWindow().height;
 
     glGenFramebuffers(1, &this->depthMap.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, this->depthMap.fbo);
     /* create depth texture */
     glGenTextures(1, &this->depthMap.id);
     glBindTexture(GL_TEXTURE_2D, this->depthMap.id);
@@ -275,7 +313,6 @@ void    Renderer::initDepthMap( void ) {
     float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, this->depthMap.fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthMap.id, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
@@ -283,4 +320,50 @@ void    Renderer::initDepthMap( void ) {
 
     this->shader["raymarch"]->use();
     this->shader["raymarch"]->setIntUniformValue("depthBuffer", 0);
+}
+
+void    Renderer::initRenderbuffer( void ) { 
+    this->renderbuffer.width = this->env->getWindow().width;
+    this->renderbuffer.height = this->env->getWindow().height;
+
+    /* create RenderBuffer */
+    glGenRenderbuffers(1, &this->renderbuffer.id);
+    glBindRenderbuffer(GL_RENDERBUFFER, this->renderbuffer.id);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, this->renderbuffer.width, this->renderbuffer.height);
+
+    /* create FrameBuffer, with renderbuffer binded */
+    glGenFramebuffers(1, &this->renderbuffer.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, this->renderbuffer.fbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, this->renderbuffer.id);
+    /* attach depth-buffer component that is also associated to another FBO (one depth-buffer, multiple Fbos) */
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthMap.id, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        return;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+void    Renderer::initIntermediateTexture( void ) {
+    this->intermediateTexture.width = this->env->getWindow().width;
+    this->intermediateTexture.height = this->env->getWindow().height;
+
+    glGenFramebuffers(1, &this->intermediateTexture.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, this->intermediateTexture.fbo);
+    /* create depth texture */
+    glGenTextures(1, &this->intermediateTexture.id);
+    glBindTexture(GL_TEXTURE_2D, this->intermediateTexture.id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, this->intermediateTexture.width, this->intermediateTexture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // attach depth texture as FBO's color buffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->intermediateTexture.id, 0);
+    
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        return;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    this->shader["blendTexture"]->use();
+    this->shader["blendTexture"]->setIntUniformValue("tex", 0);
 }

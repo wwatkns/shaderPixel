@@ -20,6 +20,33 @@ VideoCapture::~VideoCapture( void ) {
         this->videoWriter.release();
 }
 
+cv::Mat correctGamma( cv::Mat& img, double gamma ) {
+    double inverse_gamma = 1.0 / gamma;
+
+    cv::Mat lut_matrix(1, 256, CV_8UC1);
+    uchar * ptr = lut_matrix.ptr();
+    for( int i = 0; i < 256; i++ )
+        ptr[i] = (int)( pow( (double) i / 255.0, inverse_gamma ) * 255.0 );
+
+    cv::Mat result;
+    cv::LUT( img, lut_matrix, result );
+    return result;
+}
+
+cv::Mat sRGBtoLinear( cv::Mat& img ) {
+    // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_framebuffer_sRGB.txt
+    cv::Mat lut_matrix(1, 256, CV_8UC1);
+    uchar * ptr = lut_matrix.ptr();
+    for( int i = 0; i < 256; i++ ) {
+        double cs = (double)i / 255.;
+        ptr[i] = (int)((cs <= 0.04045 ? cs / 12.92 : cv::pow((cs + 0.055)/1.055, 2.4) ) * 255.0);
+    }
+    cv::Mat res;
+    cv::LUT( img, lut_matrix, res );
+    return res;
+}
+
+
 void    VideoCapture::write( bool vflip ) {
     if (!this->videoWriter.isOpened())
         return ;
@@ -30,9 +57,10 @@ void    VideoCapture::write( bool vflip ) {
     }
     /* capture frame from openGL */
     if (this->videoWriter.isOpened()) {
-        
+
         glReadPixels(0, 0, (GLsizei)this->size.width, (GLsizei)this->size.height, GL_BGR, GL_UNSIGNED_BYTE, data);
         cv::Mat tmp(this->size.height, this->size.width, CV_8UC3, data);
+        // this->frame = sRGBtoLinear(tmp);
         this->frame = tmp;
 
         if (vflip)

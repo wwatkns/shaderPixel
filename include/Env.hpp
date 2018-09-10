@@ -33,6 +33,7 @@ public:
     std::vector<Model*>&                getModels( void ) { return (models); };
     Raymarched*                         getRaymarched( void ) { return (raymarched); };
     std::vector<RaymarchedSurface*>&    getRaymarchedSurfaces( void ) { return (raymarchedSurfaces); };
+    std::vector<RaymarchedSurface*>&    getTexturedSurfaces( void ) { return (texturedSurfaces); };
     std::vector<Light*>&                getLights( void ) { return (lights); };
     Model*                              getSkybox( void ) { return (skybox); };
     Light*                              getDirectionalLight( void );
@@ -45,6 +46,7 @@ private:
     Model*                          skybox;
     Raymarched*                     raymarched;
     std::vector<RaymarchedSurface*> raymarchedSurfaces;
+    std::vector<RaymarchedSurface*> texturedSurfaces;
 
     void        initGlfwEnvironment( const std::string& glVersion = "4.0" );
     void        initGlfwWindow( size_t width, size_t height );

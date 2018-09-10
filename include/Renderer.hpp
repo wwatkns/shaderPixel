@@ -46,6 +46,8 @@ public:
     void    renderSkybox( void );
     void    renderRaymarched( void );
     void    renderRaymarchedSurfaces( void );
+    void    render2Dtexture( void );
+    void    renderBlendTexture( void );
 
 private:
     Env*            env;
@@ -53,6 +55,8 @@ private:
     tShaderMap      shader;
     tDepthMap       depthMap;       // depth-map for the view fustrum
     tDepthMap       shadowDepthMap; // depth-map for the shadows
+    tDepthMap       renderbuffer;
+    tDepthMap       intermediateTexture;
     glm::mat4       lightSpaceMat;
     int             useShadows;
     float           framerate;
@@ -62,5 +66,7 @@ private:
 
     void    initShadowDepthMap( const size_t width = 1024, const size_t height = 1024 );
     void    initDepthMap( void );
+    void    initRenderbuffer( void );
+    void    initIntermediateTexture( void );
 
 };

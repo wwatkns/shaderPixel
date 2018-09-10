@@ -170,7 +170,7 @@ vec3    getPixel(vec2 uv) {
     vec3 fog = (light*0.75+0.25) * (i / float(maxRaySteps)) * vec3(1.0, 0.2815, 0.078) * 0.95;
     vec3 shadow = vec3(1.0 - computeMeshShadows(FragPos, vec3(-1., 0., 0.)))*0.5+0.5; // hard-coded normal is not good
     float vignette = (1.0-pow(TexCoords.x*2.-1., 10.)) * (1.0-pow(TexCoords.y*2.-1., 10.));
-    return mix(light * color + fog, sky, clamp(t / maxDist, 0.0, 1.0) ) * shadow * vignette;
+    return mix(light * color + fog, sky, clamp(t / maxDist, 0.0, 1.0) ) * shadow + (1.0-vignette)*0.2;
 }
 
 void    main() {
