@@ -77,6 +77,7 @@ float   fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves
 float   fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 
 vec2    raySphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer );
+float   blob( vec3 p );
 float   sphere( vec3 p, float s );
 float   cube( vec3 p );
 float   box( vec3 p, vec3 s );
@@ -219,6 +220,31 @@ float   linearizeDepth( float depth ) {
     return 2.0 * Near * Far / (Far + Near - z * (Far - Near));
 }
 
+vec3    sampleHemisphere(float u1, float u2, vec3 normal) {
+	vec3 u = normal;
+	vec3 v = abs(u.y) < abs(u.z) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+	vec3 w = normalize(cross(u, v));
+	v = cross(w, u);
+
+	float r = sqrt(u1);
+	float theta = 2.0 * 3.1415926535 * u2;
+	float x = r * cos(theta);
+	float y = r * sin(theta);
+	return normalize(u * sqrt(1.0 - u1) + v * x + w * y);
+}
+
+vec3    diffuseFromSkybox(vec3 p, vec2 n) {	
+	vec3 col = vec3(0.0);
+	for (float i = 0.0; i < 4.0; i++)
+		for (float j = 0.0; j < 8.0; j++) {
+			vec2 s = vec2(i, j)+n;
+			float u = (random(p.xy+s)+i)*0.25;
+			float v = (random(p.yz+s)+j)*0.125;
+			vec3 ns = sampleHemisphere(u*0.5, v, p);
+			col += pow(texture(skybox, ns).rgb, vec3(2.2));
+		}
+	return col * 0.25 * 0.125;
+}
 
 void    main() {
     vec2 uv = vec2(TexCoords.x, 1.0 - TexCoords.y);
@@ -270,7 +296,7 @@ void    main() {
             vec3 color = (vec3(0.231, 0.592, 0.776) + res.y * res.y * vec3(0.486, 0.125, 0.125)) * 0.3;
             vec3 diffuse = vec3(0.898, 0.325, 0.7231) * 0.5;
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, use_shadows, false);
-            FragColor = vec4(light * color, 1.0);
+            FragColor = vec4(light * color, object[id].material.opacity);
         }
         else if (object[id].id == 1) { /* mandelbulb */
             res.y = pow(clamp(res.y, 0.0, 1.0), 0.55);
@@ -284,11 +310,16 @@ void    main() {
             vec3 glow = vec3(1.0 * g, 0.819 * g * 0.9, 0.486) * g * 2.0;
             vec3 diffuse = vec3(1.0, 0.694, 0.251);
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, use_shadows, false);
-            FragColor = vec4(light + log(glow * 0.95) * 0.75, 1.0);
+            FragColor = vec4(light + log(glow * 0.95) * 0.75, object[id].material.opacity);
         }
         else { /* default */
-            vec3 color = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, use_shadows, false);
-            FragColor = vec4(color, object[id].material.opacity);
+            vec3 light = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, use_shadows, false);
+            /* fresnel reflection */
+            vec3 diff = diffuseFromSkybox(normal, vec2(sin(uTime))*FragPos.xy) + 0.15;
+            vec3 spec = pow(texture(skybox, reflect(dir, normal)).rgb, vec3(2.2));
+            float f = 1.0 - pow(1.0 - clamp(-dot(normal, dir), 0.0, 1.0), 5.0);
+            light = mix(spec, diff * light, f);
+            FragColor = vec4(light, object[id].material.opacity);
         }
     }
 
@@ -313,8 +344,8 @@ void    main() {
                 vec3 light = computeDirectionalLight(i, hit + sphere.xyz, normal, viewDir, col.xyz, use_shadows, false);
                 /* fresnel specular reflection */
                 if (bounds.x > 0.0) {
-                    vec3 spec = pow(texture(skybox, reflect(dir, hit)).rgb, vec3(2.2));
-                    float f = 1.0 - pow(1.0 - clamp(-dot(hit, dir), 0.0, 1.0), 4.0 / sphere.w);
+                    vec3 spec = pow(texture(skybox, reflect(dir, normal)).rgb, vec3(2.2));
+                    float f = 1.0 - pow(1.0 - clamp(-dot(normal, dir), 0.0, 1.0), 5.0 / sphere.w);
                     light = mix(spec, light, f);
                 }
                 if (col.w + 0.8 > 0.0)
@@ -364,7 +395,7 @@ vec3    map( in vec3 p ) {
         else if (object[i].id == 2)
             new = vec3(ifs(pos), 0., 2.);
         else if (object[i].id == 5)
-            new = vec3(torus(pos), 0., 5.);
+            new = vec3(blob(pos), 0., 5.);
         else
             new = vec3(100000., 0., 3.);
 
@@ -407,7 +438,7 @@ vec3    mapObj( in vec3 p, int i ) {
     else if (object[i].id == 2)
         res.x = ifs(pos);
     else if (object[i].id == 5)
-        res.x = torus(pos);
+        res.x = blob(pos);
     res.x *= object[i].scale;
     return res;
 }
@@ -532,8 +563,22 @@ vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
     return vec2(max(t1, 0.0), min(t2, ndbuffer));
 }
 
+// polynomial smooth min (k = 0.1);
+float sminCubic( float a, float b, float k ) {
+    float h = max( k-abs(a-b), 0.0 );
+    return min( a, b ) - h*h*h/(6.0*k*k);
+}
 /*  Distance Estimators
 */
+float   blob( vec3 p ) {
+    vec4 t = vec4(sin(uTime*0.8), cos(uTime*0.7), sin(uTime*1.6), cos(uTime*2.1));
+    float s1 = sphere(p + 0.42 * vec3(t.w, t.y, t.x), 1.0);
+    float s2 = sphere(p + 0.75 * vec3(t.z, t.x, t.y), 1.0);
+    float s3 = sphere(p + 0.75 * vec3(t.y, t.w, t.z), 1.0);
+    float s4 = sphere(p + 0.50 * vec3(t.x, t.z, t.w), 1.0);
+    return sminCubic(sminCubic(sminCubic(s1, s2, 0.25), s3, 0.25), s4, 0.25);
+}
+
 float   sphere( vec3 p, float s ) {
     return length(p) - s;
 }

@@ -20,9 +20,9 @@ enum class eRaymarchObject {
     mandelbox,
     mandelbulb,
     ifs,
-    marble, // volumetric raymarching with surface lighting
-    cloud, // volumetric raymarching with volumetric lighting
-    torus
+    marble,
+    cloud,
+    blob
 };
 
 typedef struct  sQuadVertex {

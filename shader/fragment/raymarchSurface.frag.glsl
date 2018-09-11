@@ -36,27 +36,17 @@ const float maxDistShadow = 3.0;    // the maximum distance the ray can travel i
 const float minDistShadow = 0.005;  // the distance from object threshold at which we consider a hit in raymarching for shadows
 
 /* prototypes */
-vec3    getNormal( in vec3 p );
 vec3    computeDirectionalLight( in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows );
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
-
-// float   random(float x) {
-//     return fract(sin(mod(x, 3.14))*43758.5453);
-// }
 
 float   random(vec2 p) {
     return fract(sin(mod(dot(p, vec2(12.9898,78.233)), 3.14))*43758.5453);
 }
 
-// float   random(vec3 p) {
-// 	return fract(sin( mod(dot(p, vec3(113.5,271.9,124.6)), 3.14) )*43758.5453);
-// }
-
 vec2    random2( vec2 p ) {
     return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
 }
 
-// see https://shadertoyunofficial.wordpress.com/2016/07/20/special-shadertoy-features/ for fake interpolated 3D noise texture explanation.
 float noise( vec3 x ) {
     vec3 p = floor(x);
     vec3 f = fract(x);

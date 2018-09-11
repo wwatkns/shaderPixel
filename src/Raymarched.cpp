@@ -39,7 +39,6 @@ float   Raymarched::computeSpeedModifier( const glm::vec3& cameraPos ) {
                 speedmod = this->objects[i].speedMod;
         }
     }
-    // std::cout << "speedmod: " << speedmod << std::endl;
     return (speedmod);
 }
 

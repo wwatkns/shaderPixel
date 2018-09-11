@@ -56,6 +56,13 @@ Env::Env( void ) {
             glm::vec3(0.0f, 2.0f, 0.0f),
             glm::vec3(2.5f, 2.0f, 2.5f)
         ));
+        this->models.push_back( new Model( /* stand emplacement 6 - Blob */
+            this->models[1]->getMeshes(),
+            this->models[1]->getTextures(),
+            glm::vec3(-11.9f, -2.75f, 27.4f),
+            glm::vec3(0.0f, -0.4f, 0.0f),
+            glm::vec3(2.f)
+        ));
         this->models.push_back( new Model( /* quad for raymarched surface (to compute shadowMap correclty) */
             glm::vec3(17.01f, 0.58f, 28.75f),
             glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
@@ -126,20 +133,21 @@ Env::Env( void ) {
                     1.0
                 }
             },
-            // (tObject){
-            //     eRaymarchObject::torus,
-            //     glm::vec3(1.0, 1.5, 0.0),
-            //     glm::vec3(0.0),
-            //     0.1,
-            //     1.0,
-            //     (tMaterial){
-            //         glm::vec3(0.0),
-            //         glm::vec3(1.0),
-            //         glm::vec3(0.0, 0.0, 1.0),
-            //         128.0,
-            //         1.0
-            //     }
-            // }
+            (tObject){
+                eRaymarchObject::blob,
+                glm::vec3(-11.9f, 0.f, 27.4f),
+                glm::vec3(0.0),
+                0.5,
+                2.5,
+                1.0,
+                (tMaterial){
+                    glm::vec3(0.0),
+                    glm::vec3(1.0),
+                    glm::vec3(2.0f),
+                    1024.0,
+                    1.0
+                }
+            }
 
         });
         this->raymarchedSurfaces.push_back( new RaymarchedSurface(
