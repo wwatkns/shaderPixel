@@ -31,6 +31,9 @@ in float Near;
 in float Far;
 
 #define MAX_OBJECTS 8
+#define OCCLUSION_ITERS 10
+#define OCCLUSION_STRENGTH 32.0
+#define OCCLUSION_GRANULARITY 0.05
 
 uniform sampler2D depthBuffer;
 uniform sampler2D shadowMap;
@@ -49,86 +52,38 @@ uniform vec2 uMouse;
 uniform float uTime;
 uniform vec3 cameraPos;
 
+/* globals */
 const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
 const float maxDist = 50.0;         // the maximum distance the ray can travel in world-space
-const float minDist = 2./1080.;//0.001;        // the distance from object threshold at which we consider a hit in raymarching
+const float minDist = 2./1080.;//0.001; // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
 const float minDistShadow = 0.005;  // the distance from object threshold at which we consider a hit in raymarching for shadows
 
-#define OCCLUSION_ITERS 10
-#define OCCLUSION_STRENGTH 32.0
-#define OCCLUSION_GRANULARITY 0.05
-
 /* prototypes */
 vec4    raymarch( in vec3 ro, in vec3 rd, float s );
-vec3    getNormal( in vec3 p );
-vec3    map( in vec3 p );
-
 vec4    raymarchObj( in vec3 ro, in vec3 rd, float s, int i );
+vec3    getNormal( in vec3 p );
 vec3    getNormalObj( in vec3 p, int i );
+vec3    map( in vec3 p );
 vec3    mapObj( in vec3 p, int i );
-
 vec3    computeDirectionalLight( int objId, in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows, bool use_occlusion );
 float   softShadow( in vec3 ro, in vec3 rd, float mint, float k );
 float   ambientOcclusion( in vec3 hit, in vec3 normal );
-float   fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
 float   fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain);
-
 vec2    raySphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer );
 float   blob( vec3 p );
 float   sphere( vec3 p, float s );
-float   cube( vec3 p );
-float   box( vec3 p, vec3 s );
 float   smoothBox( vec3 p, vec3 s, float r );
-float   torus( vec3 p );
 vec2    mandelbulb( vec3 p );
 vec2    mandelbox( vec3 p );
 float   ifs( vec3 p );
-
-float random (float x) {
-    return fract(sin(mod(x, 3.14))*43758.5453);
-}
 
 float random(vec2 p) {
     return fract(sin(mod(dot(p, vec2(12.9898,78.233)), 3.14))*43758.5453);
 }
 
-float random(vec3 p) {
-	return fract(sin( mod(dot(p, vec3(113.5,271.9,124.6)), 3.14) )*43758.5453);
-}
-
-float noise2d(in vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-
-    float a = random(i);
-    float b = random(i + vec2(1.0, 0.0));
-    float c = random(i + vec2(0.0, 1.0));
-    float d = random(i + vec2(1.0, 1.0));
-
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-}
-
-highp float hash( float n ) {
-    return fract(sin(mod(n,3.14))*43758.5453);
-}
-
-// float noise( in vec3 x ) {
-//     vec3 p = floor(x);
-//     vec3 f = fract(x);
-//     f = f*f*(3.0-2.0*f);
-//     float n = p.x + p.y*57.0 + 113.0*p.z;
-//     float res = mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
-//                         mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y),
-//                     mix(mix( hash(n+113.0), hash(n+114.0),f.x),
-//                         mix( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
-//     return res;
-// }
-
-// see https://shadertoyunofficial.wordpress.com/2016/07/20/special-shadertoy-features/ for fake interpolated 3D noise texture explanation.
 float noise( vec3 x ) {
     vec3 p = floor(x);
     vec3 f = fract(x);
@@ -137,7 +92,6 @@ float noise( vec3 x ) {
     vec2 rg = texture(noiseSampler, (uv + 0.5) / 256.0, 0.0).rg;
     return mix(rg.y, rg.x, f.z);
 }
-
 
 vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s) { // same as raymarch, but we accumulate value when inside and sample the occlusion
     bounds *= radius;
@@ -179,7 +133,6 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
 	return sum;
 }
 
-// marble
 vec4    raymarchVolumeMarble( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s ) {
     bounds *= radius;
     const int maxVolumeSamples = 500; // max steps in sphere
@@ -213,11 +166,6 @@ vec3    worldPosFromDepth( float depth, vec3 ndc ) {
     viewSpacePosition /= viewSpacePosition.w;
     vec4 worldSpacePosition = invView * viewSpacePosition;
     return worldSpacePosition.xyz;
-}
-
-float   linearizeDepth( float depth ) {
-    float z = depth * 2.0 - 1.0;
-    return 2.0 * Near * Far / (Far + Near - z * (Far - Near));
 }
 
 vec3    sampleHemisphere(float u1, float u2, vec3 normal) {
@@ -323,9 +271,7 @@ void    main() {
         }
     }
 
-    // compute normal raymarching and compute color and then apply the color of the transparent volumetric object
-    /* NOTE: Maybe we should add a term to the raymarchVolume functions which is the density already reached by another medium */
-    // Raymarch for volumetric objects
+    /* Raymarching for volumetric objects */
     vec4 color = vec4(0.0);
     for (int i = 0; i < MAX_OBJECTS && i < nObjects; i++) {
         if (object[i].id == 3 || object[i].id == 4) { // 3 and 4 are marble and cloud
@@ -365,16 +311,9 @@ void    main() {
         FragColor.xyz *= 1.0 - min(color.w, 1.0);
     FragColor += color;
 
-    // iterations color
-    // {
-        // FragColor = vec4(res.z / float(maxRaySteps), 0, 0.03, 1.0);
-    // }
-    // depth-buffer debug
-    // {
-    //     float depth = texture(depthBuffer, uv).x * 2.0 - 1.0;
-    //     float c = (2.0 * Near * Far) / (Far + Near - depth * (Far - Near));
-    //     FragColor = vec4(vec3(c) / Far, 1.0);
-    // }
+    
+    /* iterations color debug */
+    // FragColor = vec4(res.z / float(maxRaySteps), 0, 0.03, 1.0);
 }
 
 vec3    opU( vec3 d1, vec3 d2 ) {
@@ -466,9 +405,6 @@ float   computeMeshShadows( vec3 hit, vec3 normal ) {
     vec4 posLightSpace = lightSpaceMat * vec4(hit, 1.0);
     vec3 projCoords = (posLightSpace.xyz / posLightSpace.w) * 0.5 + 0.5;
     float bias = 0.0025;
-    /* Default */
-    // float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // float shadow = (projCoords.z - bias > closestDepth ? 1.0 : 0.0);
     /* PCF */
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
@@ -526,17 +462,6 @@ float   ambientOcclusion( in vec3 hit, in vec3 normal ) {
     return 1.0 - clamp(occ * OCCLUSION_STRENGTH, 0.0, 1.0);
 }
 
-float fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain) {
-    float value = 0.0;
-    st *= frequency;
-    for (int i = 0; i < octaves; i++) {
-        value += amplitude * noise2d(st);
-        st *= lacunarity;
-        amplitude *= gain;
-    }
-    return value;
-}
-
 float fbm3d(in vec3 st, in float amplitude, in float frequency, in int octaves, in float lacunarity, in float gain) {
     float value = 0.0;
     st *= frequency;
@@ -563,13 +488,21 @@ vec2 raySphere( in vec3 ro, in vec3 rd, in vec4 sph, float dbuffer ) {
     return vec2(max(t1, 0.0), min(t2, ndbuffer));
 }
 
-// polynomial smooth min (k = 0.1);
+/*  Distance Estimators
+*/
+float   sphere( vec3 p, float s ) {
+    return length(p) - s;
+}
+
+float   smoothBox( vec3 p, vec3 s, float r ) {
+    return length(max(abs(p) - s, 0.0)) - r;
+}
+
 float sminCubic( float a, float b, float k ) {
     float h = max( k-abs(a-b), 0.0 );
     return min( a, b ) - h*h*h/(6.0*k*k);
 }
-/*  Distance Estimators
-*/
+
 float   blob( vec3 p ) {
     vec4 t = vec4(sin(uTime*0.8), cos(uTime*0.7), sin(uTime*1.6), cos(uTime*2.1));
     float s1 = sphere(p + 0.42 * vec3(t.w, t.y, t.x), 1.0);
@@ -577,30 +510,6 @@ float   blob( vec3 p ) {
     float s3 = sphere(p + 0.75 * vec3(t.y, t.w, t.z), 1.0);
     float s4 = sphere(p + 0.50 * vec3(t.x, t.z, t.w), 1.0);
     return sminCubic(sminCubic(sminCubic(s1, s2, 0.25), s3, 0.25), s4, 0.25);
-}
-
-float   sphere( vec3 p, float s ) {
-    return length(p) - s;
-}
-
-float   torus( vec3 p ) {
-    vec2 t = vec2(2, 0.75);
-    vec2 q = vec2(length(p.xz) - t.x, p.y);
-    return length(q) - t.y;
-}
-
-float   cube( vec3 p ) {
-    vec3 d = abs(p) - vec3(1, 1, 1);
-    return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
-}
-
-float   box( vec3 p, vec3 s ) {
-    vec3 d = abs(p) - s;
-    return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
-}
-
-float   smoothBox( vec3 p, vec3 s, float r ) {
-    return length(max(abs(p) - s, 0.0)) - r;
 }
 
 vec2   mandelbulb(vec3 pos) {

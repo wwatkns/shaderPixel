@@ -32,14 +32,10 @@ float fbm2d(in vec2 st, in float amplitude, in float frequency, in int octaves, 
     return value;
 }
 
-
 float   computeMeshShadows( vec3 hit, vec3 normal ) {
     vec4 posLightSpace = lightSpaceMat * vec4(hit, 1.0);
     vec3 projCoords = (posLightSpace.xyz / posLightSpace.w) * 0.5 + 0.5;
     float bias = 0.0025;
-    /* Default */
-    // float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // float shadow = (projCoords.z - bias > closestDepth ? 1.0 : 0.0);
     /* PCF */
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);

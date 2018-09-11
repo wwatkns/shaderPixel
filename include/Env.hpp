@@ -47,6 +47,8 @@ private:
     Raymarched*                     raymarched;
     std::vector<RaymarchedSurface*> raymarchedSurfaces;
     std::vector<RaymarchedSurface*> texturedSurfaces;
+    unsigned int                    skyboxTexture;
+    unsigned int                    noiseTexture;
 
     void        initGlfwEnvironment( const std::string& glVersion = "4.0" );
     void        initGlfwWindow( size_t width, size_t height );

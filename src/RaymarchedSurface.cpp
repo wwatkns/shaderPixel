@@ -2,19 +2,10 @@
 #include "glm/ext.hpp"
 #include "Model.hpp"
 
-RaymarchedSurface::RaymarchedSurface( const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale ) : position(position), orientation(orientation), scale(scale) {
+RaymarchedSurface::RaymarchedSurface( const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale, unsigned int skybox, unsigned int noise ) : position(position), orientation(orientation), scale(scale), skyboxId(skybox), noiseSamplerId(noise) {
     this->createRenderQuad();
     this->setup(GL_STATIC_DRAW);
     this->update();
-    this->skyboxId = loadCubemap(std::vector<std::string>{{
-        "./resource/CloudyLightRays/CloudyLightRaysLeft2048.png",
-        "./resource/CloudyLightRays/CloudyLightRaysRight2048.png",
-        "./resource/CloudyLightRays/CloudyLightRaysUp2048.png",
-        "./resource/CloudyLightRays/CloudyLightRaysDown2048.png",
-        "./resource/CloudyLightRays/CloudyLightRaysFront2048.png",
-        "./resource/CloudyLightRays/CloudyLightRaysBack2048.png",
-    }});
-    this->noiseSamplerId = loadTexture("./resource/RGBAnoiseMedium.png");
 }
 
 RaymarchedSurface::~RaymarchedSurface( void ) {

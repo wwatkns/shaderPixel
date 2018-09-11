@@ -16,6 +16,16 @@ Env::Env( void ) {
             throw Exception::InitError("glad initialization failed");
         this->controller = new Controller(this->window.ptr);
 
+        this->skyboxTexture = loadCubemap(std::vector<std::string>{{
+            "./resource/CloudyLightRays/CloudyLightRaysLeft2048.png",
+            "./resource/CloudyLightRays/CloudyLightRaysRight2048.png",
+            "./resource/CloudyLightRays/CloudyLightRaysUp2048.png",
+            "./resource/CloudyLightRays/CloudyLightRaysDown2048.png",
+            "./resource/CloudyLightRays/CloudyLightRaysFront2048.png",
+            "./resource/CloudyLightRays/CloudyLightRaysBack2048.png",
+        }});
+        this->noiseTexture = loadTexture("./resource/RGBAnoiseMedium.png");
+
         this->models.push_back( new Model(
             "./resource/models/Inn/theInn.FBX.obj",
             glm::vec3(0.0f, 2.0f, 0.0f),
@@ -148,83 +158,37 @@ Env::Env( void ) {
                     1.0
                 }
             }
-
         });
         this->raymarchedSurfaces.push_back( new RaymarchedSurface(
             glm::vec3(17.0f, 0.58f, 28.75f),
             glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
-            glm::vec3(4.3f, 11.5f, 0.0f)
+            glm::vec3(4.3f, 11.5f, 0.0f),
+            this->skyboxTexture,
+            this->noiseTexture
         ));
         this->raymarchedSurfaces.push_back( new RaymarchedSurface(
             glm::vec3(16.8f, 5.85f, -18.215f),
             glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
-            glm::vec3(2.825f, 3.45f, 0.0f)
+            glm::vec3(2.825f, 3.45f, 0.0f),
+            this->skyboxTexture,
+            this->noiseTexture
         ));
         this->texturedSurfaces.push_back( new RaymarchedSurface(
             glm::vec3(16.88f, 4.8f, -6.015f),
             glm::vec3(0.0f, 3.1415926536f * 0.5f, 0.0f),
-            glm::vec3(10.f, 13.f, 0.0f)
+            glm::vec3(10.f, 13.f, 0.0f),
+            this->skyboxTexture,
+            this->noiseTexture
         ));
-        this->lights = {{
+        this->lights = {
             new Light(
-                glm::vec3(30, 30, 18), //glm::vec3(10, 10, 6),
+                glm::vec3(30, 30, 18),
                 glm::vec3(0.77f, 0.88f, 1.0f) * 0.075f,
                 glm::vec3(1.0f, 0.964f, 0.77f),
                 glm::vec3(1.0f, 1.0f, 1.0f),
                 eLightType::directional
-            ),
-            /* lights from fractals stands - it's slow though... */
-            // new Light(
-            //     glm::vec3(10.0f, 1.f, 14.f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     1.0f,
-            //     0.18f,
-            //     0.064f,
-            //     eLightType::point
-            // ),
-            // new Light(
-            //     glm::vec3(11.3f, 2.9f, -17.65f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     1.0f,
-            //     0.18f,
-            //     0.064f,
-            //     eLightType::point
-            // ),
-            // new Light(
-            //     glm::vec3(-15.f, 0.4f, 3.1f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     1.0f,
-            //     0.18f,
-            //     0.064f,
-            //     eLightType::point
-            // ),
-            // new Light(
-            //     glm::vec3(-27.6f, 4.43f, -22.55f),
-            //     glm::vec3(0.0f, 0.0f, 0.0f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     glm::vec3(0.937f, 0.474f, 0.212f),
-            //     1.0f,
-            //     0.18f,
-            //     0.064f,
-            //     eLightType::point
-            // ),
-            // // new Light(
-            // //     glm::vec3(-27.6f, -0.85f, 12.5f),
-            // //     glm::vec3(0.0f, 0.0f, 0.0f),
-            // //     glm::vec3(0.937f, 0.474f, 0.212f),
-            // //     glm::vec3(0.937f, 0.474f, 0.212f),
-            // //     1.0f,
-            // //     0.18f,
-            // //     0.064f,
-            // //     eLightType::point
-            // // )
-        }};
+            )
+        };
         this->skybox = new Model(std::vector<std::string>{{
             "./resource/ThickCloudsWater/ThickCloudsWaterLeft2048.png",
             "./resource/ThickCloudsWater/ThickCloudsWaterRight2048.png",
@@ -248,6 +212,10 @@ Env::~Env( void ) {
     delete this->skybox;
     delete this->controller;
     delete this->raymarched;
+    if (glIsTexture(this->skyboxTexture))
+        glDeleteTextures(1, &this->skyboxTexture);
+    if (glIsTexture(this->noiseTexture))
+        glDeleteTextures(1, &this->noiseTexture);
     glfwDestroyWindow(this->window.ptr);
     glfwTerminate();
 }
@@ -271,7 +239,6 @@ void	Env::initGlfwWindow( size_t width, size_t height ) {
 	glfwMakeContextCurrent(this->window.ptr);
 	glfwSetFramebufferSizeCallback(this->window.ptr, this->framebufferSizeCallback);
 	glfwSetInputMode(this->window.ptr, GLFW_STICKY_KEYS, 1);
-    // get the size of the framebuffer
     glfwGetFramebufferSize(this->window.ptr, &this->window.width, &this->window.height);
 }
 

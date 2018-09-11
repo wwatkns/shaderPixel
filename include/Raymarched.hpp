@@ -14,7 +14,7 @@
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "utils.hpp"
-#include "Mesh.hpp" // for material struct
+#include "Mesh.hpp"
 
 enum class eRaymarchObject {
     mandelbox,

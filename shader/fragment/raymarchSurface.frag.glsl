@@ -14,8 +14,8 @@ in vec2 TexCoords;
 in float Near;
 in float Far;
 
-uniform sampler2D shadowMap; // NEW
 uniform bool use_shadows;
+uniform sampler2D shadowMap;
 uniform samplerCube skybox;
 uniform sampler2D noiseSampler;
 
@@ -27,6 +27,7 @@ uniform mat4 lightSpaceMat;
 uniform float uTime;
 uniform vec3 cameraPos;
 
+/* globals */
 const int 	maxRaySteps = 196;      // the maximum number of steps the raymarching algorithm is allowed to perform
 const float maxDist = 42.0;         // the maximum distance the ray can travel in world-space
 const float minDist = 2./1080.;     // the distance from object threshold at which we consider a hit in raymarching
@@ -43,7 +44,7 @@ float   random(vec2 p) {
     return fract(sin(mod(dot(p, vec2(12.9898,78.233)), 3.14))*43758.5453);
 }
 
-vec2    random2( vec2 p ) {
+vec2    random2(vec2 p) {
     return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
 }
 
@@ -97,9 +98,6 @@ float   computeMeshShadows( vec3 hit, vec3 normal ) {
     vec4 posLightSpace = lightSpaceMat * vec4(hit, 1.0);
     vec3 projCoords = (posLightSpace.xyz / posLightSpace.w) * 0.5 + 0.5;
     float bias = 0.0025;
-    /* Default */
-    // float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // float shadow = (projCoords.z - bias > closestDepth ? 1.0 : 0.0);
     /* PCF */
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);

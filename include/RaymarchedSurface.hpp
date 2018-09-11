@@ -14,7 +14,7 @@
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "utils.hpp"
-#include "Mesh.hpp" // for material struct
+#include "Mesh.hpp"
 
 typedef struct  sQuadVertex2 {
     glm::vec3   Position;
@@ -24,7 +24,7 @@ typedef struct  sQuadVertex2 {
 class RaymarchedSurface {
 
 public:
-    RaymarchedSurface( const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale );
+    RaymarchedSurface( const glm::vec3& position, const glm::vec3& orientation, const glm::vec3& scale, unsigned int skybox, unsigned int noise );
     ~RaymarchedSurface( void );
 
     void                        update( void );

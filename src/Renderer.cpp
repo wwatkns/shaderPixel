@@ -250,8 +250,6 @@ void    Renderer::render2Dtexture( void ) {
 }
 
 void    Renderer::renderBlendTexture( void ) {
-    // glDisable(GL_DEPTH_TEST);
-
     this->shader["blendTexture"]->use();
     this->shader["blendTexture"]->setFloatUniformValue("near", this->camera.getNear());
     this->shader["blendTexture"]->setFloatUniformValue("far", this->camera.getFar());
@@ -262,8 +260,6 @@ void    Renderer::renderBlendTexture( void ) {
 
     if (this->env->getRaymarched())
         this->env->getRaymarched()->render(*this->shader["blendTexture"]);
-
-    // glEnable(GL_DEPTH_TEST);
 }
 
 void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) {
@@ -276,7 +272,7 @@ void    Renderer::initShadowDepthMap( const size_t width, const size_t height ) 
     glGenTextures(1, &this->shadowDepthMap.id);
     glBindTexture(GL_TEXTURE_2D, this->shadowDepthMap.id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);

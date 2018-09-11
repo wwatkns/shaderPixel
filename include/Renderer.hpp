@@ -56,7 +56,7 @@ private:
     tDepthMap       depthMap;       // depth-map for the view fustrum
     tDepthMap       shadowDepthMap; // depth-map for the shadows
     tDepthMap       renderbuffer;
-    tDepthMap       intermediateTexture;
+    tDepthMap       intermediateTexture; // I'm so sorry... [renderbuffer -> texture -> blend shader -> screen]
     glm::mat4       lightSpaceMat;
     int             useShadows;
     float           framerate;
