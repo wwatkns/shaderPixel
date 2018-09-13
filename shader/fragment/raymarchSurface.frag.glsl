@@ -32,9 +32,9 @@ const int 	maxRaySteps = 196;      // the maximum number of steps the raymarchin
 const float maxDist = 42.0;         // the maximum distance the ray can travel in world-space
 const float minDist = 2./1080.;     // the distance from object threshold at which we consider a hit in raymarching
 
-const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
-const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
-const float minDistShadow = 0.005;  // the distance from object threshold at which we consider a hit in raymarching for shadows
+const int 	maxRayStepsShadow = 50;  // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
+const float maxDistShadow = 10.0;    // the maximum distance the ray can travel in world-space
+const float minDistShadow = 4./1080.;// the distance from object threshold at which we consider a hit in raymarching for shadows
 
 /* prototypes */
 vec3    computeDirectionalLight( in vec3 hit, in vec3 normal, in vec3 viewDir, in vec3 m_diffuse, bool use_shadows );

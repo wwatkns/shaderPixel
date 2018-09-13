@@ -55,7 +55,7 @@ uniform vec3 cameraPos;
 /* globals */
 const int 	maxRaySteps = 128;      // the maximum number of steps the raymarching algorithm is allowed to perform
 const float maxDist = 50.0;         // the maximum distance the ray can travel in world-space
-const float minDist = 2./1080.;//0.001; // the distance from object threshold at which we consider a hit in raymarching
+const float minDist = 2./1080.;     // the distance from object threshold at which we consider a hit in raymarching
 
 const int 	maxRayStepsShadow = 64; // the maximum number of steps the raymarching algorithm is allowed to perform for shadows
 const float maxDistShadow = 3.0;    // the maximum distance the ray can travel in world-space
@@ -96,8 +96,8 @@ float noise( vec3 x ) {
 vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, float s) { // same as raymarch, but we accumulate value when inside and sample the occlusion
     bounds *= radius;
     const int maxVolumeSamples = 35; // max steps for density sampling
-    const int maxShadowSamples = 20; // max steps for shadow sampling
-    const float r = 6.0;
+    const int maxShadowSamples = 15; // max steps for shadow sampling
+    const float r = 5.0;
     float shadowStepSize = (2.0 * radius) / float(maxShadowSamples);
     vec3 lightVector = normalize(directionalLight.position) * shadowStepSize;
     float absorption = 50.0 / float(maxShadowSamples);
@@ -106,25 +106,26 @@ vec4    raymarchVolume( in vec3 ro, in vec3 rd, in vec2 bounds, float radius, fl
     vec4 sum = vec4(0.0);
 
     for (int i = 0; i < maxVolumeSamples; i++) {
-        if (sum.a > 0.99 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
+        if (sum.a > 0.98 || t > bounds.y || t > maxDist || t > s) break; // optimization and geometry occlusion
         vec3 pos = ro + rd * t;
         float se = fbm3d(pos + uTime*0.1, 0.8, 2.0, 4, 2.7, 0.248);
-        se = 1.0/exp(se * r);
+        se = exp(-se * r);
         se *= 1.0 - smoothstep(0.75 * radius, radius, length(pos)); // edge so that we have no interaction with sphere bounds
         // Compute shadow from directional light source
         float T1 = 1.0;
         for (int s = 0; s < maxShadowSamples; s++) {
             vec3 lpos = pos + lightVector * float(s);
-            if (lpos.x < -radius || lpos.x > radius || lpos.y < -radius || lpos.y > radius || lpos.z < -radius || lpos.z > radius) // optimization
+            float len = length(lpos);
+            if (len > radius) // optimization
                 break;
             float ldensity = fbm3d(lpos + uTime*0.1, 0.8, 2.0, 4, 2.7, 0.248);
-            ldensity = 1.0/exp(ldensity * r);
-            ldensity *= 1.0 - smoothstep(0.75 * radius, radius, length(lpos));
+            ldensity = exp(-ldensity * r);
+            ldensity *= 1.0 - smoothstep(0.75 * radius, radius, len);
             if (ldensity > 0.0)
                 T1 *= clamp(1.0 - ldensity * absorption, 0.0, 1.0);
-            if (T1 <= 0.01) break;
+            if (T1 <= 0.001) break;
         }
-        vec4 col = vec4(vec3(1.0) * max(T1, 0.15), se);
+        vec4 col = vec4(vec3(max(T1, 0.15)), se);
 		col.a *= 0.4;
 		col.rgb *= col.a;
         sum += col * (1.0 - sum.a) * (stepSize * 100.0);
@@ -260,7 +261,7 @@ void    main() {
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, diffuse, use_shadows, false);
             FragColor = vec4(light + log(glow * 0.95) * 0.75, object[id].material.opacity);
         }
-        else { /* default */
+        else { /* blob */
             vec3 light = computeDirectionalLight(id, hit, normal, viewDir, object[id].material.diffuse, use_shadows, false);
             /* fresnel reflection */
             vec3 diff = diffuseFromSkybox(normal, vec2(sin(uTime))*FragPos.xy) + 0.15;

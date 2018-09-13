@@ -62,6 +62,6 @@ void    main() {
     float b = (r >= 1.0 ? max(r-yb, 0.005) : 0.0);
 
     vec3 shadow = vec3(1.0 - computeMeshShadows(FragPos, vec3(-1.0, 0., 0.)))*0.5+0.5;
-
-    FragColor = vec4(vec3(b) * shadow, 1.0);
+    vec3 color = vec3(b) * shadow;
+    FragColor = vec4(color, 1.0);
 }

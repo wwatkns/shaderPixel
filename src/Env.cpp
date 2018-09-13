@@ -8,8 +8,8 @@
 Env::Env( void ) {
     try {
         this->initGlfwEnvironment("4.0");
-        // this->initGlfwWindow(720, 480); /* 1280x720 */
-        this->initGlfwWindow(960, 540); /* 1920x1080 */
+        this->initGlfwWindow(720, 480); /* 1280x720 */
+        // this->initGlfwWindow(960, 540); /* 1920x1080 */
         // this->initGlfwWindow(1280, 720); /* 2560x1440 */
         // this->initGlfwWindow(1920, 1080); /* 3840x2160 */
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))

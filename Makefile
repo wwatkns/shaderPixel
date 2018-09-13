@@ -17,7 +17,7 @@ INC_PATH = ./include/ \
 		   $(LIB_PATH)$(LIB_ASSIMP_NAME)/include/ \
 		   /usr/local/Cellar/opencv/3.4.2/include
 
-CC_FLGS = -std=c++11 -Ofast #-Werror -Wextra -Wall
+CC_FLGS = -std=c++11 -Ofast
 CC_LIBS = -lassimp -lglfw3 -framework AppKit -framework OpenGL -framework IOKit -framework CoreVideo \
 		  -lopencv_core -lopencv_videoio -lopencv_imgproc
 

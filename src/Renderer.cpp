@@ -48,6 +48,7 @@ void	Renderer::loop( void ) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     while (!glfwWindowShouldClose(this->env->getWindow().ptr)) {
         glfwPollEvents();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -64,6 +65,7 @@ void	Renderer::loop( void ) {
         this->renderLights();
         this->renderMeshes();
         this->renderSkybox();
+
         /* dumb renderbuffer pass... */
         glBindFramebuffer(GL_FRAMEBUFFER, this->renderbuffer.fbo);
         glClear(GL_COLOR_BUFFER_BIT);
