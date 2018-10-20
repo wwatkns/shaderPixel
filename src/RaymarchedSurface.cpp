@@ -9,7 +9,7 @@ RaymarchedSurface::RaymarchedSurface( const glm::vec3& position, const glm::vec3
 }
 
 RaymarchedSurface::~RaymarchedSurface( void ) {
-    glDeleteBuffers(1, &this->vao);
+    glDeleteVertexArrays(1, &this->vao);
     glDeleteBuffers(1, &this->vbo);
     glDeleteBuffers(1, &this->ebo);
 }
