@@ -1,1 +1,2 @@
-![screenshot_1](https://raw.githubusercontent.com/wwatkins42/shaderPixel/master/resource/Screenshot 2019-05-14 at 15.32.27.png)
+<img src="https://raw.githubusercontent.com/wwatkins42/shaderPixel/master/resource/Screenshot%202019-05-14%20at%2015.32.27.png" width="49%"/> <img src="https://raw.githubusercontent.com/wwatkins42/shaderPixel/master/resource/Screenshot%202019-05-14%20at%2015.34.54.png" width="49%"/>
+<img src="https://raw.githubusercontent.com/wwatkins42/shaderPixel/master/resource/Screenshot%202019-05-14%20at%2015.35.24.png" width="49%"/> <img src="https://raw.githubusercontent.com/wwatkins42/shaderPixel/master/resource/Screenshot%202019-05-14%20at%2015.35.49.png" width="49%"/>
